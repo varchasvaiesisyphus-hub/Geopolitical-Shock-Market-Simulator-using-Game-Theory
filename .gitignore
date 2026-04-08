@@ -1,0 +1,27 @@
+# --- Virtual Environment ---
+# Your specific environment folder shown in the screenshot
+market_simulator_env/
+
+# Standard Python environment names
+venv/
+.venv/
+env/
+
+# --- Python Cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Data and Outputs ---
+# Ignore the specific simulation results shown in your /data folder
+data/simulation_results.csv
+# General rule for any other data files you might generate
+data/*.csv
+data/*.json
+data/*.parquet
+
+# --- IDE and OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
