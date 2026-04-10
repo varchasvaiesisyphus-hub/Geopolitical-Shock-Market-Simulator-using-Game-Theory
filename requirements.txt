@@ -1,0 +1,11 @@
+# Core computation
+numpy
+pandas
+
+# Visualization
+matplotlib
+
+# Dashboard
+streamlit
+# Utilities (optional but useful)
+scipy
