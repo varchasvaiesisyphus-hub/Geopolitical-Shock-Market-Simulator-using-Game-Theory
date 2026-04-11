@@ -14,7 +14,7 @@ class Agent:
         self.risk_aversion = risk_aversion
 
     def compute_signal(self, trend, volatility, event, panic):
-        raise NotImplementedError
+        return 0
 
     def decide_order(self, trend, volatility, event, panic, price):
         signal = self.compute_signal(trend, volatility, event, panic)

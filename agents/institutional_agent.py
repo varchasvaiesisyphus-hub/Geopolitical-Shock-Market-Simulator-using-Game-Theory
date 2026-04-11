@@ -16,4 +16,3 @@ class Institutional_Agent(Agent):
 
 
 
-

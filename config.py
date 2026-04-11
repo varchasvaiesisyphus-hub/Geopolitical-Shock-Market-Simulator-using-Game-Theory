@@ -8,7 +8,6 @@ PANIC_WEIGHTS = {
     "trend": 1.35
 }
 
-LIQUIDITY_BASE = 1000
 LIQUIDITY_SENSITIVITY = 500
 
 PRICE_SENSITIVITY = 0.05
@@ -21,7 +20,29 @@ EVENT_SCENARIOS = {
     "crisis": -0.8
 }
 
-EVENT = EVENT_SCENARIOS["no_event"]
 
 INITIAL_PRICE = 100
-INITIAL_T = 0
+T = 100
+EPSILON = 0.03 # random noise for price updation
+#-----------#market_State#---------------#
+
+VOLATILITY_CALCULATION_LAST_N_VALUES = 10
+
+#volatility updation constants 
+BETA1 = 0.8 
+BETA2 = 0.1
+BETA3 = 0.2
+
+#liquiadity constants 
+L_0 = 10000 #initial
+GAMMA = 500
+
+#event 
+
+EVENT_SERIES = {5: "crisis"}
+
+PRICE_HISTORY = []
+
+#AGENT DDEFAULT 
+CASH = 100
+K = 0.5
