@@ -21,10 +21,14 @@ for t in range(T):
 
     # 3. Agents act
     total_demand = 0
-    agent_modules = [contrarian_agent, institutional_agent, momentum_agent, retail_agent]
+    agent_modules = [contrarian_agent, institutional_agent, momentum_agent, retail_agent] #wrong
     for module in agent_modules:
         # 1. Instantiate the class (create the actual agent object)
         active_agent = module.Agent(CASH, K) 
+        """
+        each file has one agent class with a proper name
+        the class name reflects its type
+        """
         
         # 2. Now call the method on the instance
         order = active_agent.decide_order(trend, volatility, event, panic, Price)
