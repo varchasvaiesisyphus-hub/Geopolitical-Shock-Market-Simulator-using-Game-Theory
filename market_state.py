@@ -9,15 +9,35 @@ def update_volatility(volatility,  event, demand = 0,):
 
 
 def Compute_panic(event, volatility, trend):
-    panic = np.min([1,(PANIC_WEIGHTS["event"]*max(0, -event) + PANIC_WEIGHTS["volatility"]*volatility + PANIC_WEIGHTS["trend"]*(-trend))])
-    return panic   
+    # Use weights to calculate raw pressure
+    event_component = PANIC_WEIGHTS["event"] * max(0, -event)
+    vol_component = PANIC_WEIGHTS["volatility"] * volatility
+    trend_component = PANIC_WEIGHTS["trend"] * (-trend)
+    
+    raw_panic = event_component + vol_component + trend_component
+    
+    # Clip between 0 and 1 so panic can't be negative or exceed 100%
+    panic = np.clip(raw_panic, 0, 1)
+    
+    return panic  
 
 def Update_price(price, demand, liquidity, volatility, panic):
-    demand_impact = demand/(1 + np.absolute(demand))
-    BASE_NOISE = random.uniform(0.001, 0.003)
-    noise = min(BASE_NOISE + NOISE_ALPHA*volatility + NOISE_BETA*panic, MAX_NOISE)
-    price +=  (PRICE_SENSITIVITY *(demand_impact/np.max([1,liquidity])) + noise)   #make sure demand is signed correctly
-    return price  
+    # Squashes demand between -1 and 1
+    demand_impact = demand / (1 + np.absolute(demand))
+    
+    # LIQUIDITY FACTOR: 
+    # If L_0 is 10000 and current liquidity is 5000, factor is 2.0.
+    # This means when liquidity is low, price moves twice as fast!
+    liquidity_factor = L_0 / max(1.0, liquidity) 
+    
+    BASE_NOISE = random.uniform(-0.002, 0.002) 
+    noise = BASE_NOISE + (NOISE_ALPHA * volatility * random.choice([-1, 1]))
+    
+    # NEW FORMULA: Multiply by the factor instead of dividing by raw liquidity
+    price_change = (PRICE_SENSITIVITY * demand_impact * liquidity_factor) + noise
+    price += price_change 
+    
+    return max(0.01, price) # Prevent negative prices just in case
 
 
 def update_liquidity( panic, previous_liqiudity = L_0,):

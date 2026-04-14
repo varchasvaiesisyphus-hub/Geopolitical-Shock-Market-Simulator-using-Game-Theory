@@ -1,19 +1,18 @@
-import random
-T = 50
+T = 100
 
 TREND_CLIP = 0.05
 
 VOL_NORMALIZATION = 0.05
 
 PANIC_WEIGHTS = {
-    "event": 1.75,
-    "volatility": 1.5,
-    "trend": 1.35
+    "event": 1.80,
+    "volatility": 0.40,
+    "trend": 0.60
 }
 
 LIQUIDITY_SENSITIVITY = 500
 
-PRICE_SENSITIVITY = 0.05
+PRICE_SENSITIVITY = 5
 
 INITIAL_PRICE = 100
 
@@ -23,14 +22,14 @@ INITIAL_PRICE = 100
 VOLATILITY_CALCULATION_LAST_N_VALUES = 10
 BASE_VOLATILITY = 0.005
 #volatility updation constants 
-BETA1 = 0.8 
-BETA2 = 0.1
-BETA3 = 0.2
+BETA1 = 0.6 
+BETA2 = 0.01
+BETA3 = 0.05
 
 #liquiadity constants 
 L_0 = 10000 #initial liquidity
 GAMMA = 500 #how quickly liquidity disappears under stress
-DELTA = 200 #recovery rate
+DELTA = 0.1 #recovery rate
 
 #event 
 EVENT_AT = {
@@ -47,14 +46,21 @@ EVENT_SCENARIOS = {
 
 PRICE_HISTORY = []
 
-#AGENT DDEFAULT 
-CASH = 100
-K = 0.5
-
-
 #average of absolute daily returns
 
 #NOISE SENSITIVITY 
-NOISE_ALPHA = 0.5
-NOISE_BETA =  0.8
+NOISE_ALPHA = 0.01
+NOISE_BETA =  0.01
 MAX_NOISE = 0.02
+
+
+#-----------------#AGENT#-------------#
+
+#AGENT COUNT
+RETAIL_COUNT = 50
+MOMENTUM_COUNT = 25
+CONTRARIAN_COUNT = 15
+INSTITUTIONAL_COUNT = 5
+
+INITIAL_PRICE = 100.0
+
