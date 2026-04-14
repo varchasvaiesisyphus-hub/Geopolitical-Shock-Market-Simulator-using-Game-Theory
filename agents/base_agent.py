@@ -24,11 +24,7 @@ class Agent:
         if order > 0:
             max_affordable = self.cash / price
             order = min(order, max_affordable)
-
-        # Position constraint (sell)
-        if order < 0:
-            order = max(order, -self.position)
-
+        #positional constraint
         return order
 
     def update_state(self, order, price):
