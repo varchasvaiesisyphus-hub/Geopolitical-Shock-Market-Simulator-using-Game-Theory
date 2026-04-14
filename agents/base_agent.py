@@ -24,11 +24,16 @@ class Agent:
         if order > 0:
             max_affordable = self.cash / price
             order = min(order, max_affordable)
+        #positional constraint
 
-        # Position constraint (sell)
-        if order < 0:
-            order = max(order, -self.position)
-
+        elif order < 0:
+            # We define the limit. If they own 5 shares, they can sell 15 (5 + 10).
+            # If they own -8 shares, they can only sell 2 more.
+            max_short_allowed = 500
+            max_sellable = self.position + max_short_allowed
+            
+            # We use max() because order is negative (e.g., max(-50, -15) = -15)
+            order = max(order, -max_sellable)
         return order
 
     def update_state(self, order, price):
