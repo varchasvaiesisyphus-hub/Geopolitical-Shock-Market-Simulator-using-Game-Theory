@@ -15,6 +15,10 @@ def Compute_panic(event, volatility, trend):
     trend_component = PANIC_WEIGHTS["trend"] * (-trend)
     
     raw_panic = event_component + vol_component + trend_component
+    max_possible_panic = 1.03
+    panic = raw_panic/max_possible_panic
+
+     
     
     # Clip between 0 and 1 so panic can't be negative or exceed 100%
     panic = np.clip(raw_panic, 0, 1)
@@ -45,7 +49,10 @@ def update_liquidity( panic, previous_liqiudity = L_0,):
     return liquidity  
 
 
-def Compute_trend (current_price, previous_price):   #make it moving avg next
+def Compute_trend (current_price, previous_price, volatility):   #make it moving avg next
     change_in_price =  (current_price - previous_price) 
     trend =  change_in_price/previous_price
+    # trend = np.clip(trend, -TREND_CLIP, TREND_CLIP)
+    trend = trend/volatility  #normalized and made it relative to volatility (if volatlity increase trend is less powerful)
     return trend 
+

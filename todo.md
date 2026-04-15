@@ -54,3 +54,35 @@ order = min(order, max_affordable, max_buy)
 5. Final balanced constraints
 order ≤ min(cash constraint, position cap)
 order ≥ -(position cap + current position)
+
+
+
+
+
+
+
+
+
+# PANIC COMPONENT IMPROVEMENT
+
+def Compute_panic(event, volatility, trend):
+    # Use weights to calculate raw pressure
+    event_component = PANIC_WEIGHTS["event"] * max(0, -event)
+    vol_component = PANIC_WEIGHTS["volatility"] * volatility
+    trend_component = PANIC_WEIGHTS["trend"] * (-trend)
+    
+    raw_panic = event_component + vol_component + trend_component
+    max_possible_panic = 1.03
+    panic = raw_panic/max_possible_panic
+
+     
+    
+    # Clip between 0 and 1 so panic can't be negative or exceed 100%
+    panic = np.clip(raw_panic, 0, 1)
+
+PANIC_WEIGHTS = {
+    "event": 1.0,
+    "volatility": 0.40,
+    "trend": 0.60
+}
+

@@ -5,24 +5,23 @@ TREND_CLIP = 0.05
 VOL_NORMALIZATION = 0.05
 
 PANIC_WEIGHTS = {
-    "event": 1.80,
+    "event": 1.0,
     "volatility": 0.40,
     "trend": 0.60
 }
 
 LIQUIDITY_SENSITIVITY = 500
 
+MAX_LIQUIDITY_IMPACT = 1
+
 PRICE_SENSITIVITY = 5
-
-INITIAL_PRICE = 100
-
 
 #-----------#market_State#---------------#
 
 VOLATILITY_CALCULATION_LAST_N_VALUES = 10
-BASE_VOLATILITY = 0.005
+BASE_VOLATILITY = 0.07564618387407905
 #volatility updation constants 
-BETA1 = 0.6 
+BETA1 = 0.60 
 BETA2 = 0.01
 BETA3 = 0.05
 
@@ -33,7 +32,8 @@ DELTA = 0.1 #recovery rate
 
 #event 
 EVENT_AT = {
-    5 : "crisis"  #event at (time) : event_name
+    5 : "strong_positive",  #event at (time) : event_name
+    30: "crisis"
 } 
 
 EVENT_SCENARIOS = {
@@ -49,9 +49,7 @@ PRICE_HISTORY = []
 #average of absolute daily returns
 
 #NOISE SENSITIVITY 
-NOISE_ALPHA = 0.01
-NOISE_BETA =  0.01
-MAX_NOISE = 0.02
+NOISE_ALPHA = 0.01 # NOISE-MODEL: based on volatiliy and chance
 
 
 #-----------------#AGENT#-------------#
