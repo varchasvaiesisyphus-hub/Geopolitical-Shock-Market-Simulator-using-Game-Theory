@@ -7,11 +7,12 @@
 #scoresell​=w1​(severity)+w2​(volatility)+w3​(fear of crowd)
 
 class Agent:
-    def __init__(self, cash, k, risk_aversion=1.0):
+    def __init__(self, cash, k, risk_aversion=1.0, name = None):
         self.cash = cash
         self.position = 0
         self.k = k #aggresiveness
         self.risk_aversion = risk_aversion
+        self.name = name
 
     def compute_signal(self, trend, volatility, event, panic):
         return 0
@@ -40,8 +41,7 @@ class Agent:
         self.position += order
         self.cash -= order * price
 
-"""
-Panic seller → signal = panic
-Momentum → signal = trend
-Contrarian → signal = negative trend
-"""
+    def get_state(self):
+        return self.position, self.cash
+
+# INCLUDE RISK AVERSION IN SYSTEM---> ORDER DECISION/ SIGNAL PROCESSING 

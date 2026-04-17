@@ -1,6 +1,9 @@
 # --- Virtual Environment ---
 # Your specific environment folder shown in the screenshot
 market_simulator_env/
+stock_simulation_results.xlsx
+test.py
+todo.md
 
 # Standard Python environment names
 venv/

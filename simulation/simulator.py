@@ -3,7 +3,7 @@ from market_state import *
 from market_state import Compute_trend
 from agents import contrarian_agent, institutional_agent, momentum_agent, retail_agent
 from events.event import Compute_event_state
-import time
+import random
 
 # INITIALIZING VARIABLES
 price = INITIAL_PRICE
@@ -20,11 +20,13 @@ data = []
 
 
 # CREATINNG AGENT INSTANCES
-contrarian = contrarian_agent.ContrarianAgent(20000, 0.9, 0.6)
-institutional = institutional_agent.Institutional_Agent(500000, 0.95, 0.3)
-momentum = momentum_agent.Momentum_Agent(50000, 0.4, 1.8)
-retail = retail_agent.Retail_Agent(1000, 0.8, 1.2)
+
+
+
+
 events_set = set()
+# creating instances
+agent_space = {}
 
 for t in range(T+1):
 
@@ -70,33 +72,118 @@ for t in range(T+1):
 
     
     # 3. Agents act
+
+    
     total_demand = 0
     retail_demand = 0
     momentum_demand = 0
     institutional_demand = 0
     contrarian_demand = 0
 
-    for i in range(RETAIL_COUNT):
-        retail_order = retail.decide_order(trend, volatility, event_state, panic, price )
-        retail.update_state(retail_order, price)
-        retail_demand += retail_order 
+    retail_agent_space = {}
+    for i in range(2):
+
+        #RANDOM STATE VALUE
+        retail_cash = random.randint(5000, 15000)
+        retail_aggresion = random.uniform(0.5, 0.85)
+        retail_risk_aversion = random.uniform(0.8, 0.4)
+
+        # INSTANCE NAMING
+        retail_agent_name = "retail_agent_" + str(i)
+
+        # STORING INSTANCE DETAILS  
+        retail_agent_space[retail_agent_name] = [retail_cash, retail_aggresion, retail_risk_aversion]
         
-    for j in range(CONTRARIAN_COUNT):
-        contrarian_order = contrarian.decide_order(trend, volatility, event_state, panic, price)
-        contrarian.update_state(contrarian_order, price)
+        # INSTANTANCE CREATION 
+        retail_agent_name  = retail_agent.Retail_Agent(retail_cash, retail_aggresion, retail_risk_aversion)
+
+        # ORDER DECISION 
+        retail_order = retail_agent_name.decide_order(trend, volatility, event_state, panic, price)
+        retail_agent_name.update_state(retail_order, price)
+        retail_demand += retail_order
+
+    
+    # STORING RETAIL AGENT SPACE TO GLOBAL AGENT SPACE 
+    agent_space["retail_agents"] =  retail_agent_space
+    
+    contrarian_agent_space = {}
+    for j in range(2):
+
+        #RANDOM STATE VALUES 
+        contrarian_cash = random.randint(15000, 25000)
+        contrarian_aggression = random.uniform(0.75, 0.95)
+        contrarian_risk_aversion = random.uniform(0.5, 0.7)
+
+        # INSTANTANCE NAMING
+        contrarian_agent_name = "contrarian_agent_" + str(j) 
+
+        # STORING INSTANCE DETAILS  
+        contrarian_agent_space[contrarian_agent_name] = [contrarian_cash, contrarian_aggression, contrarian_risk_aversion]
+
+        # INSTANCE CREATION 
+        contrarian_agent_name = contrarian_agent.ContrarianAgent(contrarian_cash, contrarian_aggression, contrarian_risk_aversion)
+
+
+        # ORDER DECISION 
+        contrarian_order = contrarian_agent_name.decide_order(trend, volatility, event_state, panic, price)
+        contrarian_agent_name.update_state(contrarian_order, price)
         contrarian_demand += contrarian_order
 
-    for l in range(INSTITUTIONAL_COUNT):
-        institutional_order =  institutional.decide_order(trend, volatility, event_state, panic, price)
-        institutional.update_state(institutional_order, price)
+    # STORING CONTRARIAN AGENT SPACE TO GLOBAL AGENT SPACE 
+    agent_space["contrarian_agents"] =  contrarian_agent_space
+
+    institutional_agent_space = {}
+    for l in range(2):
+
+        #RANDOM STAE VALUES 
+        institutional_cash = random.randint(350000, 650000)
+        institutional_aggression = random.uniform(0.75, 0.95)
+        institutional_risk_aversion = random.uniform(0.2, 0.4)
+
+        #INSTANCE NAMING 
+        institutional_agent_name = "institutional_agent_" + str(l) 
+
+        # STORING INSTANCE DETAILS
+        institutional_agent_space[institutional_agent_name] = [institutional_cash, institutional_aggression, institutional_risk_aversion]
+
+        # INSTANCE CREATION 
+        institutional_agent_name = institutional_agent.Institutional_Agent(contrarian_cash, contrarian_aggression, contrarian_risk_aversion)
+
+        # ORDER DECISION
+        institutional_order =  institutional_agent_name.decide_order(trend, volatility, event_state, panic, price)
+        institutional_agent_name.update_state(institutional_order, price)
         institutional_demand += institutional_order
 
-    for m in range(MOMENTUM_COUNT):
-        momentum_order = momentum.decide_order(trend, volatility, event_state, panic, price)
-        momentum.update_state(momentum_order, price)
-        momentum_demand += momentum_order
+    # STORING INSTITUTIONAL AGENT SPACE TO GLOBAL AGENT SPACE 
+    agent_space["institutional_agents"] =  institutional_agent_space
+
+
+    momentum_agent_space = {}
+    for m in range(2):
+
+        #RANDOM STATE VALUES 
+        momentum_cash = random.randint(40000, 60000)
+        momentum_aggression = random.uniform(0.35, 0.45)
+        momentum_risk_aversion = random.uniform(0.7, 0.9)
+
+        #INSTANCE NAMING
+        momentum_agent_name = "momentum_agent_" + str(m) 
+
+        # STORING INSTANCE DETAILS
+        momentum_agent_space[momentum_agent_name] = [momentum_cash, momentum_aggression, momentum_risk_aversion]
+
+        # INSTANCE CREATION
+        momentum_agent_name = momentum_agent.Momentum_Agent(momentum_cash, momentum_aggression, momentum_risk_aversion)
         
+        # ORDER DECISION
+        momentum_order = momentum_agent_name.decide_order(trend, volatility, event_state, panic, price)
+        momentum_agent_name.update_state(momentum_order, price)
+        momentum_demand += momentum_order
     
+    # STORING MOMENTUM AGENT SPACE TO GLOBAL AGENT SPACE
+    agent_space["momentum_agents"] =  momentum_agent_space
+    
+    # STORING TOTAL DEMAND
     total_demand = retail_demand + contrarian_demand + institutional_demand + momentum_demand
 
     #store each sector demand+ total demand
@@ -127,8 +214,15 @@ for t in range(T+1):
     data.append(data_dict)
 
 
-# print(data)
+#get inividual agent name 
+for agent_type in agent_space: 
+    for agents in agent_space[agent_type]:
+        # agents = agents.replace("'", " ")
+        # print(agents, ":", agents.get_state())
+        print(agents.type)
+
+#get agent info
+# for agent_type in agent_space:
+#     print(agent_type, " : ", agent_space[agent_type], "\n")
 
 
-# You append a dictionary of your variables to a standard Python list during the loop. 
-# At the end, you convert that list into a Pandas DataFrame and export it to a CSV in one line.
