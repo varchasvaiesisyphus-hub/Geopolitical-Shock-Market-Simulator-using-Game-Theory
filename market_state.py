@@ -5,6 +5,7 @@ import random
 
 def update_volatility(volatility,  event, demand = 0,):
     volatility = BETA1*(volatility) + BETA2 * np.absolute(demand) + BETA3* np.max([0, event])
+    volatility = np.clip(volatility, 0, 1)
     return volatility  
 
 
@@ -17,10 +18,6 @@ def Compute_panic(event, volatility, trend):
     raw_panic = event_component + vol_component + trend_component
     max_possible_panic = 1.03
     panic = raw_panic/max_possible_panic
-
-     
-    
-    # Clip between 0 and 1 so panic can't be negative or exceed 100%
     panic = np.clip(raw_panic, 0, 1)
     
     return panic  
@@ -53,6 +50,7 @@ def Compute_trend (current_price, previous_price, volatility):   #make it moving
     change_in_price =  (current_price - previous_price) 
     trend =  change_in_price/previous_price
     # trend = np.clip(trend, -TREND_CLIP, TREND_CLIP)
-    trend = trend/volatility  #normalized and made it relative to volatility (if volatlity increase trend is less powerful)
+    trend = trend/ max(volatility, 0.4)  #normalized and made it relative to volatility (if volatlity increase trend is less powerful)
+    trend = np.clip(trend, -1, 1)
     return trend 
 

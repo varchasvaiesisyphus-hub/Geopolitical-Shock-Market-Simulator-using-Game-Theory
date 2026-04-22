@@ -39,38 +39,7 @@ def Compute_event_state(events, t):
         elif event_name == "strong_positive":
             event_state_generated = generate_event(EVENT_SCENARIOS["strong_positive"], 0.035, t_decay)
         elif event_name == "no_event": 
-            event_state_generated = generate_event(EVENT_SCENARIOS["no_event"], 0, t_decay)
-
+            event_state_generated = 0
         event_state_total += event_state_generated
 
     return event_state_total
-
-"""
-@1.  Compute_event() is using the wrong time logic
-
-You need either:
-
-a time series of event values, or
-a shock start time + duration + decay
-
-@2. im using decayed events since t is already a value bigger than 0
---> elapsed = t - shock_start_time
-
---------------------## The biggest modeling issue ##-------------------------------
-
-
-Right now, your system mixes up three separate things:
-
-event value
-event decay
-event duration / persistence
-
-These are not the same.
-
-A good model needs:
-
-a shock starts at some time
-it has an initial strength
-it decays over time
-it may last across many timesteps
-"""

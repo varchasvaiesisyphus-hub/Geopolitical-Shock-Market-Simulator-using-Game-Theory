@@ -40,7 +40,7 @@ EVENT_SCENARIOS = {
     "no_event": 0.0,
     "mild_positive": 0.3,
     "strong_positive": 0.7,
-    "mild_negative": -0.3,
+    "mild_negative": -0.35,
     "crisis": -0.8
 }
 
@@ -62,3 +62,6 @@ INSTITUTIONAL_COUNT = 5
 
 INITIAL_PRICE = 100.0
 
+
+
+EVENT_HISTORY = {}
