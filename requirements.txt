@@ -1,6 +1,7 @@
 # Core computation
 numpy
 pandas
+openpyxl #pandas package for xl 
 
 # Visualization
 matplotlib

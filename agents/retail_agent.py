@@ -2,30 +2,31 @@ from agents.base_agent import Agent
 import numpy as np
 
 # ============================================================
-# RETAIL AGENT — updated with value signal
+# RETAIL AGENT
 # ============================================================
-# Financial rationale for the value_signal weight:
+# Behavioural profile (from behavioural finance literature):
+#   - Panic-driven: the dominant signal is fear (-0.60 panic weight)
+#   - News-reactive: reads headlines, responds to events (+0.30)
+#   - Weak trend-follower: notices momentum but acts late (+0.20)
+#   - Volatility-averse: high uncertainty makes them sit out (-0.30)
+#   - Weak value anchor: notices "bargains" but slowly (+0.15)
 #
-# Retail investors DO respond to "bargain" prices, but weakly and
-# only after significant drops become impossible to ignore.
-# They're the last to capitulate AND the last to buy the dip.
-# This is well-documented in behavioural finance (disposition effect,
-# loss aversion). So we give value_signal a LOW positive weight (+0.15).
-#
-# The panic signal (-0.6) still dominates — retail sells first,
-# asks questions later. But when price is 80% below recent average,
-# even retail eventually starts nibbling.
+# Reading the signal formula:
+#   Each line's coefficient shows that term's contribution.
+#   The operator at the END of a line connects to the NEXT term.
+#   So: trend(+) + event(+) - panic(-) - vol(-) + value(+)
+#   The dominant negative term is panic — retail sells first,
+#   asks questions later. This is the disposition effect.
 # ============================================================
 
 class Retail_Agent(Agent):
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
-            (0.20 * trend)         +   # trend follower (weak)
-            (0.30 * event)         -   # news reactive
-            (0.60 * panic)         -   # panic-driven seller (dominant)
-            (0.30 * volatility)    +   # vol-averse
-            (0.15 * value_signal)      # value anchor (weak) — buys deep dips eventually
+              (0.20 * trend)         # weak trend-following
+            + (0.30 * event)         # news reactive
+            - (0.60 * panic)         # DOMINANT: panic-driven selling
+            - (0.30 * volatility)    # vol-averse
+            + (0.15 * value_signal)  # weak value anchor — last to buy the dip
         )
-        signal = np.clip(signal, -1, 1)
-        return signal
+        return np.clip(signal, -1.0, 1.0)

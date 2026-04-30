@@ -1,23 +1,29 @@
 import numpy as np
 
+
 def generate_event(initial_value, decay_rate, t):
     """
     Exponential decay model for event impact.
-    
+
+    Formula: impact(t) = initial_value × e^(−decay_rate × t)
+
     Args:
-        initial_value (float): The event's impact at t=0 (from EVENT_SCENARIOS).
-                               Positive for good news, negative for bad news.
-        decay_rate (float):    How quickly the event's influence fades.
-                               Higher rate = faster fade. Typical range: 0.03 - 0.10.
-        t (int):               Timesteps since the event started.
-    
+        initial_value (float): Impact at t=0. From EVENT_SCENARIOS in config.
+                               Positive = good news, negative = bad news.
+        decay_rate    (float): How quickly the event fades. Higher = faster.
+        t             (int):   Steps since the event started (t_decay).
+
     Returns:
-        float: Current event impact = initial_value * e^(-decay_rate * t)
-    
+        float: Current impact of the event at this timestep.
+
     Financial note:
-    At t=0: full impact. At t=20 with rate=0.035: impact is ~50% of initial.
-    This mirrors how markets react to news — sharply at first, then
-    progressively digest it as more information arrives.
+        At t=0:  full impact  (market first hears the news)
+        At t=20 with rate=0.035:  ~50% impact  (priced in halfway)
+        At t=60 with rate=0.035:  ~12% impact  (mostly absorbed)
+        At t=100 with rate=0.035: ~3% impact   (residual sentiment)
+
+        This mirrors how markets react to news: sharply at first,
+        then more gradually as more information becomes available
+        and the initial shock is analysed and contextualised.
     """
-    event_state = initial_value * np.exp(-decay_rate * t)
-    return event_state
+    return initial_value * np.exp(-decay_rate * t)

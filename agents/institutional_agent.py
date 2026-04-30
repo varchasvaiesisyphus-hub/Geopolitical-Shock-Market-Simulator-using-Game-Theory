@@ -2,34 +2,36 @@ from agents.base_agent import Agent
 import numpy as np
 
 # ============================================================
-# INSTITUTIONAL AGENT — updated with value signal
+# INSTITUTIONAL AGENT
 # ============================================================
-# Financial rationale:
+# Behavioural profile:
+#   Institutions (pension funds, mutual funds, investment banks)
+#   are the most disciplined participants. Key characteristics:
 #
-# Institutions are sophisticated: they have research teams computing
-# fair value estimates. When price deviates sharply from fundamental
-# value, they will accumulate positions (slowly, to avoid moving the
-# market against themselves — called "market impact minimization").
+#   - Trend-aware:          +0.40 * trend (longer horizon, not trend-chasing)
+#   - News-driven:          +0.40 * event (research desk processes fundamentals)
+#   - Volatility-targeting: -0.50 * volatility (risk mandate: cut exposure on vol spikes)
+#   - Low panic:            -0.30 * panic (risk managers, not gut instinct)
+#   - Moderate value:       +0.30 * value_signal (fundamental research informs entry)
 #
-# Moderate weight (+0.30): institutions respond to value but they're
-# also constrained by risk mandates. Even if something looks cheap,
-# a high-volatility environment (-0.5 vol weight) makes them cautious.
-# This creates the institutional behavior of "value with discipline."
-#
-# Real-world example: a pension fund might have a policy of "buy if
-# P/E drops 30% below 5-year average" — that's precisely the kind
-# of rule that value_signal encodes here.
+# Financial rationale for vol-targeting:
+#   Real institutions often operate under a "volatility budget" — they
+#   target a fixed annualized portfolio vol (e.g., 10%). When realized
+#   vol spikes, they mechanically reduce position sizes to stay within
+#   budget. This creates the paradoxical effect: institutions SELL into
+#   a falling market not because they're panicking, but because their
+#   risk model forces it. This is pro-cyclical and amplifies crashes.
+#   Your -0.50 vol weight captures this mechanism.
 # ============================================================
 
 class Institutional_Agent(Agent):
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
-            (0.40 * trend)          +   # trend-aware
-            (0.40 * event)          -   # news-driven (research desk)
-            (0.50 * volatility)     -   # volatility-targeting (risk mandate)
-            (0.30 * panic)          +   # less emotional than retail
-            (0.30 * value_signal)       # moderate value anchor
+              (0.40 * trend)         # trend-aware (not blind follower)
+            + (0.40 * event)         # news-driven via research
+            - (0.50 * volatility)    # vol-targeting risk mandate
+            - (0.30 * panic)         # low emotional sensitivity
+            + (0.30 * value_signal)  # fundamental value anchor
         )
-        signal = np.clip(signal, -1, 1)
-        return signal
+        return np.clip(signal, -1.0, 1.0)

@@ -2,34 +2,34 @@ from agents.base_agent import Agent
 import numpy as np
 
 # ============================================================
-# CONTRARIAN AGENT — updated with value signal (HIGH weight)
+# CONTRARIAN AGENT
 # ============================================================
-# Financial rationale:
+# Behavioural profile:
+#   Contrarians "fade the crowd" — they BUY when everyone else panics
+#   and SELL when everyone else is euphoric.
 #
-# The contrarian IS the value investor in this simulation.
-# Their entire strategy is to buy when things look terrible and
-# sell when things look euphoric. The value_signal is the
-# quantitative expression of that philosophy.
+#   - Fades the trend:    -0.60 * trend (falling trend = buy opportunity)
+#   - Fades bad news:     -0.30 * event (crisis = cheapness, not doom)
+#   - Buys the panic:     +0.40 * panic (high fear = mean-reversion setup)
+#   - Value-driven:       +0.50 * value_signal (primary conviction anchor)
 #
-# A value_signal of +0.8 means price is 80% below recent average
-# — exactly when a contrarian should be most aggressive.
-# This is the Buffett "be greedy when others are fearful" moment.
+# Financial archetype: deep value investors, crisis hedge funds,
+# funds that buy distressed debt during credit crunches.
+# "Be greedy when others are fearful." — Warren Buffett
 #
-# High weight (+0.5): value dislocation is their PRIMARY signal.
-# They still use panic (+0.4) and fade the trend (-0.6), but
-# value_signal is what gives them conviction to BUY into a crash
-# rather than waiting for the trend to reverse first.
+# The value_signal weight (0.50) is the highest of any agent type
+# because contrarians need a quantitative anchor to act against the
+# trend. Without it, they're just noise traders going the wrong way.
 # ============================================================
 
 class ContrarianAgent(Agent):
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
-            -(0.60 * trend)                                 +   # fade the trend
-            -(0.30 * event)                                 +   # fade bad news (opportunity)
-             (0.40 * panic)                                 +   # buy the panic
-             (0.50 * value_signal)                          +   # VALUE ANCHOR — their core edge
-            ((-trend * 0.00001) * 0.5 * volatility)            # non-linear vol interaction
+            - (0.60 * trend)                              # fade the trend
+            - (0.30 * event)                              # bad news = opportunity
+            + (0.40 * panic)                              # buy the panic
+            + (0.50 * value_signal)                       # PRIMARY value anchor
+            + ((-trend * 0.00001) * 0.5 * volatility)    # small non-linear vol term
         )
-        signal = np.clip(signal, -1, 1)
-        return signal
+        return np.clip(signal, -1.0, 1.0)
