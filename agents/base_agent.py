@@ -1,47 +1,46 @@
-#each agent has : cash, position (holding), risk(sensitivity to uncertainity), belief (about others), strategy (panic, momentum, contrarian, institutional, hedger)
-#expected utility --> decision making 
-#actions = (buy, hold, sell)
-#utility = expected gain - risk  penalty - transaction cost 
-#belief expected actions of other agents 
-#scorebuy​=w1​(undervaluation)+w2​(expected rebound)−w3​(risk)
-#scoresell​=w1​(severity)+w2​(volatility)+w3​(fear of crowd)
+import numpy as np
 
 class Agent:
-    def __init__(self, cash, k, risk_aversion=1.0, name = None):
-        self.cash = cash
-        self.position = 0
-        self.k = k #aggresiveness
+    def __init__(self, cash, k, risk_aversion=1.0, name=None, max_position=100):
+        self.cash          = cash
+        self.position      = 0
+        self.k             = k
         self.risk_aversion = risk_aversion
-        self.name = name
+        self.name          = name
+        self.max_position  = max_position
 
-    def compute_signal(self, trend, volatility, event, panic):
+    def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
+        # Each subclass overrides this with its own behavioural formula.
+        # value_signal is now part of the interface: every agent CAN use it.
+        # Whether they weight it heavily or lightly is their strategic choice.
         return 0
 
-    def decide_order(self, trend, volatility, event, panic, price):
-        signal = self.compute_signal(trend, volatility, event, panic)
-        order = self.k * signal
+    def decide_order(self, trend, volatility, event, panic, price, value_signal=0.0):
+        signal = self.compute_signal(trend, volatility, event, panic, value_signal)
+        if signal < -0.05:
+            order  = self.k * signal
+        elif signal >0.05:
+            order  = self.k * signal
 
-        # Capital constraint (buy)
+        else:
+            order = 0 #HOLD
+                    
+
         if order > 0:
-            max_affordable = self.cash / price
-            order = min(order, max_affordable)
-        #positional constraint
+            max_affordable = self.cash / price if price > 0 else 0
+            max_buy        = self.max_position - self.position
+            order = min(order, max_affordable, max_buy)
+            order = max(order, 0)
 
         elif order < 0:
-            # We define the limit. If they own 5 shares, they can sell 15 (5 + 10).
-            # If they own -8 shares, they can only sell 2 more.
-            max_short_allowed = 500
-            max_sellable = self.position + max_short_allowed
-            
-            # We use max() because order is negative (e.g., max(-50, -15) = -15)
+            max_sellable = self.position + self.max_position
             order = max(order, -max_sellable)
+
         return order
 
     def update_state(self, order, price):
         self.position += order
-        self.cash -= order * price
+        self.cash     -= order * price
 
     def get_state(self):
-        return self.position, self.cash
-
-# INCLUDE RISK AVERSION IN SYSTEM---> ORDER DECISION/ SIGNAL PROCESSING 
+        return {"name": self.name, "position": self.position, "cash": self.cash}
