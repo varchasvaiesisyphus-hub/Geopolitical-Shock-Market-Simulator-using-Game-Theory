@@ -49,7 +49,7 @@ class Momentum_Agent(Agent):
         order = (self.k * signal * self.cash) / price 
 
         if order > 0:
-            max_holding = (self.cash/ price) * self.max_position_fraction
+            max_holding = (self.initial_cash/ price) * self.max_position_fraction
             
             if self.position < max_holding:
                 remaining_position = max_holding - self.position

@@ -25,8 +25,7 @@ class Agent:
 
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
-        # Overridden by each subclass.
-        # Returns conviction in [-1, 1]: +1 = strong buy, -1 = strong sell.
+        
         return 0.0
 
     def decide_order(self, trend, volatility, event, panic, price, value_signal=0.0):
@@ -67,3 +66,8 @@ class Agent:
         return {"name": self.name, "position": round(self.position, 4),
                 "cash": round(self.cash, 2)}
     
+
+    def get_pnl(self):
+        pnl = self.initial_cash - self.cash 
+
+        return pnl

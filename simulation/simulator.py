@@ -281,5 +281,5 @@ Agents_dict = {
     }
 
 for _ , agents in enumerate(retail_agents):
-    print(f"{agents.get_state()} - ({agents.initial_cash})Initial cash")
+    print(f"{agents.get_state()} - ({agents.initial_cash})Initial cash --> {agents.get_pnl()} (PROFIT/LOSS)")
     
