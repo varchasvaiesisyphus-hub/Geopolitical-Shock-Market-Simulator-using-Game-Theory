@@ -104,3 +104,7 @@ class Momentum_Agent(Agent):
             return 0.0
         trend = (current_avg - previous_avg) / previous_avg
         return float(np.clip(trend, -1.0, 1.0))
+
+
+
+

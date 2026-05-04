@@ -95,19 +95,7 @@ def update_liquidity(panic, previous_liquidity=L_0):
 
 
 def Compute_trend(current_price, previous_price, volatility):
-    # --------------------------------------------------------
-    # VOLATILITY-NORMALIZED MOMENTUM SIGNAL
-    # --------------------------------------------------------
-    # Raw single-period return: (P_t - P_{t-1}) / P_{t-1}
-    #
-    # Dividing by volatility produces a volatility-adjusted return,
-    # analogous to a daily Sharpe ratio:
-    #   1% move with vol=2%  → signal = 0.50 (meaningful)
-    #   1% move with vol=20% → signal = 0.05 (noise)
-    #
-    # max(volatility, 0.4) floor: prevents division by near-zero vol
-    # at simulation start. Without it, the first tiny price move with
-    # vol≈0.001 would produce trend = 5000 → all signals blow up.
+
     if previous_price == 0:
         return 0.0
     change_in_price = current_price - previous_price
@@ -115,3 +103,35 @@ def Compute_trend(current_price, previous_price, volatility):
     trend = trend / max(volatility, 0.4)
     trend = np.clip(trend, -1.0, 1.0)
     return trend
+
+
+
+def compute_value_signal(current_price, ewma_reference):
+    """
+    How far is the current price from its long-term EWMA baseline?
+
+    Formula:  (ewma - price) / ewma
+
+    Returns a value in [-1, 1]:
+      +1.0  → price far BELOW ewma  → deeply undervalued → buy signal
+       0.0  → price equals ewma     → fairly valued
+      -1.0  → price far ABOVE ewma  → overvalued          → sell signal
+
+    Why EWMA over a simple rolling mean?
+    A 20-period rolling mean is fully replaced by crash prices within
+    20 steps (each step shifts out one pre-crash price). After 30 steps
+    of a crash, rolling_mean ≈ crash price → value_signal ≈ 0 (neutral)
+    → no buy pressure → crash continues to $0.01 with no recovery.
+
+    EWMA with alpha=0.05 retains ~78% of its pre-crash value after
+    30 steps. It "remembers" where prices used to be and keeps the
+    buy signal strong throughout a prolonged crash.
+
+    Real-world analogue: This is similar to comparing a stock's current
+    price to its 200-day exponentially-weighted moving average — a
+    standard institutional signal for identifying mean-reversion setups.
+    """
+    if ewma_reference <= 0:
+        return 0.0
+    raw = (ewma_reference - current_price) / ewma_reference
+    return float(np.clip(raw, -1.0, 1.0))
