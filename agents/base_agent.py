@@ -14,7 +14,7 @@ import numpy as np
 # ============================================================
 
 class Agent:
-    def __init__(self, cash, k, risk_aversion=1.0, name=None, max_position_fraction= 0):
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0):
         self.initial_cash = cash
         self.cash          = cash
         self.position      = 0          # shares held (+ve = long, -ve = short)
@@ -22,6 +22,7 @@ class Agent:
         self.risk_aversion = risk_aversion
         self.name          = name
         self.max_position_fraction  = max_position_fraction  # symmetric cap: position ∈ [-max, +max]
+        self.signal_threshold = signal_threshold
 
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
@@ -32,7 +33,7 @@ class Agent:
         signal = self.compute_signal(trend, volatility, event, panic, value_signal)
 
 
-        if abs(signal) <= 0.05:
+        if abs(signal) <= self.signal_threshold:
             return 0.0
 
         order = (self.k * signal * self.cash) / price   #number of shares 

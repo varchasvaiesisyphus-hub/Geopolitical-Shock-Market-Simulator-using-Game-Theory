@@ -37,7 +37,8 @@ def run_market_simulation():
             k             = random.uniform(0.50, 0.85),
             risk_aversion = random.uniform(0.40, 0.80),
             name          = f"retail_{i}",
-            max_position_fraction =  0.70
+            max_position_fraction =  0.70,
+            signal_threshold = random.uniform(0.1, 0.2)
         )
 
         retail_agents.append(a)
@@ -54,7 +55,8 @@ def run_market_simulation():
             k             = random.uniform(0.75, 0.95),
             risk_aversion = random.uniform(0.50, 0.70),
             name          = f"contrarian_{j}",
-            max_position_fraction = 0.25
+            max_position_fraction = 0.25,
+            signal_threshold = random.uniform(0.03, 0.08),
         )
 
         contrarian_agents.append(b)
@@ -70,6 +72,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.20, 0.40),
             name          = f"institutional_{l}",
             max_position_fraction = 0.15,
+            signal_threshold = random.uniform(0.08, 0.15),
         )
 
         institutional_agents.append(c)
@@ -84,7 +87,8 @@ def run_market_simulation():
             k             = random.uniform(0.35, 0.45),
             risk_aversion = random.uniform(0.70, 0.90),
             name          = f"momentum_{m}",
-            max_position_fraction = 0.60
+            max_position_fraction = 0.60,
+            signal_threshold = random.uniform(0.02, 0.06)
         )
 
         momentum_agents.append(d)
@@ -99,7 +103,8 @@ def run_market_simulation():
             k             = random.uniform(0.45, 0.55),
             risk_aversion = random.uniform(0.20, 0.30),
             name          = f"value_{v}",        
-            max_position_fraction = 0.40
+            max_position_fraction = 0.40,
+            signal_threshold = random.uniform(0.02, 0.06),
         )
 
         value_investor_agents.append(e)
@@ -230,11 +235,11 @@ def run_market_simulation():
                 "institutional_demand" : institutional_demand,
                 "value_investor_demand" : value_investor_demand,
                 "total_demand" : total_demand,
-                "price" : price,
                 })
 
 
         # STORING MARKET STATE DATA
+        data_dict.update({'price' : price})
         market_data.append(data_dict)
 
         # ---- STEP 7: Update market state ----

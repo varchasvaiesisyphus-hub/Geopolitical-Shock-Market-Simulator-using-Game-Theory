@@ -1,2 +1,4 @@
-import numpy as np
-print(np.round(-0.6969, 0))
+import random
+
+
+print(random.uniform(0.1, 0.3))

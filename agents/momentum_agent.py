@@ -25,8 +25,8 @@ from config import PRICE_HISTORY
 
 class Momentum_Agent(Agent):
 
-    def __init__(self, cash, k, risk_aversion=1.0, name=None, max_position_fraction = None):
-        super().__init__(cash, k, risk_aversion, name, max_position_fraction)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None):
+        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction)
         # avg_history: stores rolling average prices across timesteps.
         # By comparing consecutive entries we measure "is the smoothed
         # trend itself accelerating or decelerating?" — second-order momentum.
