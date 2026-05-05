@@ -16,7 +16,8 @@ def run_market_simulation():
     ewma_price = float(INITIAL_PRICE)
     liquidity  = L_0
     volatility = BASE_VOLATILITY
-    market_data = []
+
+    market_data = [] # For: T -> market state data
 
     initial_agent_registry = [] # For: AGENT_NAME -> INITIAL DATA
     operational_market_log = [] # For: T -> OPERATIONAL DATA
@@ -76,7 +77,7 @@ def run_market_simulation():
 
     # ---- MOMENTUM (25 agents) ----
     # Medium capital, systematic, trend-following via rolling averages.
-    momentum_agents_list = []
+    momentum_agents = []
     for m in range(MOMENTUM_COUNT):
         d = momentum_agent.Momentum_Agent(
             cash          = random.randint(40_000, 60_000),
@@ -86,7 +87,7 @@ def run_market_simulation():
             max_position_fraction = 0.60
         )
 
-        momentum_agents_list.append(d)
+        momentum_agents.append(d)
         all_agents.append(d)
 
     # ---- VALUE INVESTORS (30 agents) ----
@@ -173,11 +174,43 @@ def run_market_simulation():
 
         # ---- STEP 5 & 6: Agents act and get Logged ----
         total_demand = 0
+
+        retail_demand = 0
+        momentum_demand = 0
+        institutional_demand = 0
+        value_investor_demand = 0 
+        contrarian_demand = 0
+
+
         for agent in all_agents:
-            # 1. Decide action
-            # (Note: Passing PRICE_HISTORY only if they need it is safer)
-            order = agent.decide_order(trend, volatility, event_state, panic, price, PRICE_HISTORY, value_signal)
+            # 5.1 Decide action
+
+            if agent in  momentum_agents:
+                order = agent.decide_order(trend, volatility, event_state, panic, price, PRICE_HISTORY, value_signal)
+                momentum_demand += order
+
+
+
+            elif agent in retail_agents:
+                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)
+                retail_demand += order
             
+            elif agent in contrarian_agents:
+                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)  
+                contrarian_demand += order
+
+            elif agent in institutional_agents:
+                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)
+                institutional_demand += order
+
+            elif agent in value_investor_agents:
+                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)
+                value_investor_demand += order
+            
+            else:
+                raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
+
+
             # 2. Update Demand & Agent State
             total_demand += order
             agent.update_state(order, price)
@@ -187,8 +220,22 @@ def run_market_simulation():
                 "timestamp": t,
                 "agent_name": agent.name,
                 "position": agent.position,
-                "order": order # No need for getattr() here
+                "order": order, 
             })
+
+            data_dict.update({
+                "retail_demand" : retail_demand,
+                "contrarian_demand" : contrarian_demand,
+                "momentum_demand" : momentum_demand,
+                "institutional_demand" : institutional_demand,
+                "value_investor_demand" : value_investor_demand,
+                "total_demand" : total_demand,
+                "price" : price,
+                })
+
+
+        # STORING MARKET STATE DATA
+        market_data.append(data_dict)
 
         # ---- STEP 7: Update market state ----
         volatility = update_volatility(volatility, event_state, total_demand)
@@ -208,10 +255,14 @@ def run_market_simulation():
             "net_worth": round(current_networth, 2),
             "profit": round(current_networth - agent.initial_cash, 2)
         })
+
+
+
     # 5. THE DATA STORAGE MECHANISM (SAVE TO CSV)
     pd.DataFrame(initial_agent_registry).to_csv(DATA_DIR / "initial_agents.csv", index=False)
     pd.DataFrame(operational_market_log).to_csv(DATA_DIR / "market_operations.csv", index=False)
     pd.DataFrame(final_summary).to_csv(DATA_DIR / "simulation_summary.csv", index=False)
+    pd.DataFrame(market_data).to_csv(DATA_DIR / "MARKET_STATE_DATA.csv", index=False)
 
     print(f"\nSimulation complete. Data saved to {DATA_DIR}")   
 
