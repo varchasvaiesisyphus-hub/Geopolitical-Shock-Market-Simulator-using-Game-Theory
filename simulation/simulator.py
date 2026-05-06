@@ -104,7 +104,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.20, 0.30),
             name          = f"value_{v}",        
             max_position_fraction = 0.40,
-            signal_threshold = random.uniform(0.02, 0.06),
+            signal_threshold = random.uniform(0.03, 0.10),
         )
 
         value_investor_agents.append(e)
@@ -128,7 +128,8 @@ def run_market_simulation():
             "initial_cash": agent.cash,
             "k_value": agent.k,
             "risk_aversion": agent.risk_aversion,
-            "max_position_fraction": agent.max_position_fraction
+            "max_position_fraction": agent.max_position_fraction,
+            "signal_threshold" : agent.signal_threshold,
         })
 
 
@@ -191,25 +192,30 @@ def run_market_simulation():
             # 5.1 Decide action
 
             if agent in  momentum_agents:
-                order = agent.decide_order(trend, volatility, event_state, panic, price, PRICE_HISTORY, value_signal)
+                signal = agent.compute_signal(volatility, event_state, panic,PRICE_HISTORY, value_signal)
+                order = agent.decide_order(price, signal)
                 momentum_demand += order
 
 
 
             elif agent in retail_agents:
-                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)
+                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                order = agent.decide_order(price, signal)
                 retail_demand += order
             
             elif agent in contrarian_agents:
-                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)  
+                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                order = agent.decide_order(price, signal)  
                 contrarian_demand += order
 
             elif agent in institutional_agents:
-                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)
+                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                order = agent.decide_order(price, signal)
                 institutional_demand += order
 
             elif agent in value_investor_agents:
-                order = agent.decide_order(trend, volatility, event_state, panic, price, value_signal)
+                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                order = agent.decide_order(price, signal)
                 value_investor_demand += order
             
             else:
@@ -225,6 +231,7 @@ def run_market_simulation():
                 "timestamp": t,
                 "agent_name": agent.name,
                 "position": agent.position,
+                "signal" : signal,
                 "order": order, 
             })
 

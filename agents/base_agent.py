@@ -29,9 +29,7 @@ class Agent:
         
         return 0.0
 
-    def decide_order(self, trend, volatility, event, panic, price, value_signal=0.0):
-        signal = self.compute_signal(trend, volatility, event, panic, value_signal)
-
+    def decide_order(self, price, signal):
 
         if abs(signal) <= self.signal_threshold:
             return 0.0

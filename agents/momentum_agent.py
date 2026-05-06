@@ -32,17 +32,11 @@ class Momentum_Agent(Agent):
         # trend itself accelerating or decelerating?" — second-order momentum.
         self.avg_history = []
 
-    def decide_order(self, trend, volatility, event, panic, price,
-                     price_history, value_signal=0.0):
+    def decide_order(self, price, signal):
         # Momentum agents need price history to compute their rolling signal.
-        # If history is too short, they sit out (return 0).
-        if price_history is None:
-            price_history = PRICE_HISTORY
-        if len(price_history) < 2:
-            return 0.0
+        # If history is too short, they sit out (return 0)
 
-        signal = self.compute_signal(volatility, event, panic, price_history, value_signal)
-
+        
         if abs(signal) <= 0.05:
             return 0.0
 
@@ -71,6 +65,10 @@ class Momentum_Agent(Agent):
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:
             price_history = PRICE_HISTORY
+        if len(price_history) < 2:
+            return 0.0
+        
+
         self.compute_rolling_avg(price_history)   # updates avg_history as a side-effect
         trend = self.compute_rolling_avg_trend()
 
