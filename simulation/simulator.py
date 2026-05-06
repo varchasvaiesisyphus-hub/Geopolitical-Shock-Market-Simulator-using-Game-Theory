@@ -98,7 +98,7 @@ def run_market_simulation():
     # Large capital, patience, driven almost entirely by value dislocation.
     value_investor_agents = []
     for v in range(VALUE_INVESTOR_COUNT):
-        e = value_investor.Value_Agent(
+        e = value_investor.value_investor_agent(
             cash          = random.randint(100_000, 150_000),
             k             = random.uniform(0.45, 0.55),
             risk_aversion = random.uniform(0.20, 0.30),
@@ -191,29 +191,27 @@ def run_market_simulation():
         for agent in all_agents:
             # 5.1 Decide action
 
-            if agent in  momentum_agents:
+            if isinstance(agent, momentum_agent.Momentum_Agent):
                 signal = agent.compute_signal(volatility, event_state, panic,PRICE_HISTORY, value_signal)
                 order = agent.decide_order(price, signal)
                 momentum_demand += order
 
-
-
-            elif agent in retail_agents:
+            elif isinstance(agent, retail_agent.Retail_Agent):
                 signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
                 order = agent.decide_order(price, signal)
                 retail_demand += order
             
-            elif agent in contrarian_agents:
+            elif isinstance(agent, contrarian_agent.ContrarianAgent):
                 signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
                 order = agent.decide_order(price, signal)  
                 contrarian_demand += order
 
-            elif agent in institutional_agents:
+            elif isinstance(agent, institutional_agent.Institutional_Agent):
                 signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
                 order = agent.decide_order(price, signal)
                 institutional_demand += order
 
-            elif agent in value_investor_agents:
+            elif isinstance(agent, value_investor.value_investor_agent):
                 signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
                 order = agent.decide_order(price, signal)
                 value_investor_demand += order
@@ -235,14 +233,14 @@ def run_market_simulation():
                 "order": order, 
             })
 
-            data_dict.update({
-                "retail_demand" : retail_demand,
-                "contrarian_demand" : contrarian_demand,
-                "momentum_demand" : momentum_demand,
-                "institutional_demand" : institutional_demand,
-                "value_investor_demand" : value_investor_demand,
-                "total_demand" : total_demand,
-                })
+        data_dict.update({
+        "retail_demand" : retail_demand,
+        "contrarian_demand" : contrarian_demand,
+        "momentum_demand" : momentum_demand,
+        "institutional_demand" : institutional_demand,
+        "value_investor_demand" : value_investor_demand,
+        "total_demand" : total_demand,
+        })
 
 
         # STORING MARKET STATE DATA
@@ -263,9 +261,9 @@ def run_market_simulation():
             "agent_name": agent.name,
             "agent_type": agent_category,
             "initial_cash": agent.initial_cash,
-            "final_positions": agent.position,
+            "holding": agent.position,
             "net_worth": round(current_networth, 2),
-            "profit": round(current_networth - agent.initial_cash, 2)
+            "profit": round(agent.get_pnl(price), 2)
         })
 
 

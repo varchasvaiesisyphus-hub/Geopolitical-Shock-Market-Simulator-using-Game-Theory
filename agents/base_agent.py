@@ -40,8 +40,13 @@ class Agent:
             max_holding = (self.initial_cash/ price) * self.max_position_fraction
             
             if self.position < max_holding:
+            
                 remaining_position = max_holding - self.position
-                order = min([order, remaining_position])
+                if self.cash > (remaining_position*price):
+                    order = min([order, remaining_position])
+                else:
+                    order = self.cash / price
+
             else:
                 order = 0
 
@@ -66,7 +71,7 @@ class Agent:
                 "cash": round(self.cash, 2)}
     
 
-    def get_pnl(self):
-        pnl = self.initial_cash - self.cash 
+    def get_pnl(self,price):
+        pnl = (self.cash + self.position *price) - self.initial_cash
 
         return pnl

@@ -44,7 +44,7 @@ def Compute_panic(event, volatility, trend):
         PANIC_WEIGHTS["event"]      * 0.8   # crisis magnitude
         + PANIC_WEIGHTS["volatility"] * 1.0
         + PANIC_WEIGHTS["trend"]      * 1.0
-    )  # = 1.0*0.8 + 0.40*1.0 + 0.60*1.0 = 1.80
+    )  
 
     panic = raw_panic / max_possible_panic
     panic = np.clip(panic, 0.0, 1.0)

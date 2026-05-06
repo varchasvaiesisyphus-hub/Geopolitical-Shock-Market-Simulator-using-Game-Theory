@@ -37,7 +37,7 @@ class Momentum_Agent(Agent):
         # If history is too short, they sit out (return 0)
 
         
-        if abs(signal) <= 0.05:
+        if abs(signal) <= self.signal_threshold:
             return 0.0
 
         order = (self.k * signal * self.cash) / price 

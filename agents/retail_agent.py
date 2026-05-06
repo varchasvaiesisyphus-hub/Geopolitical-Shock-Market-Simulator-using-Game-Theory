@@ -25,7 +25,7 @@ class Retail_Agent(Agent):
         signal = (
               (0.20 * trend)         # weak trend-following
             + (0.40 * event)         # news reactive
-            - (0.55 * panic)         # DOMINANT: panic-driven selling
+            - (0.55 * panic)         # DOMINANT: panic-driven selling --> Headline + public fear  
             - (0.30 * volatility)    # vol-averse
             + (0.15 * value_signal)  # weak value anchor — last to buy the dip
         )

@@ -32,7 +32,7 @@ import numpy as np
 #   That's intentional: value investors provide the floor.
 # ============================================================
 
-class Value_Agent(Agent):
+class value_investor_agent(Agent):
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
