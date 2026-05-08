@@ -19,13 +19,14 @@ def update_volatility(volatility, event, demand=0):
 
     demand_impact = demand / (1 + np.absolute(demand))
 
-    volatility = (BETA1 * volatility
-                  + BETA2 * np.abs(demand_impact)
-                  + BETA3 * np.max([0, -event]))  
+    volatility = (BETA1 * volatility                     # persistence
+                + (1 - BETA1) * BASE_VOLATILITY          # mean reversion ← THE FIX
+                + BETA2 * abs(demand_impact)             # demand shock
+                + BETA3 * max(0, -event))                # event shock
 
 
 
-    volatility = np.clip(volatility, MIN_VOLATILITY, 1.0)
+    
     return volatility
 
 
@@ -41,7 +42,7 @@ def Compute_panic(event, volatility, trend):
 
 
     max_possible_panic = (
-        PANIC_WEIGHTS["event"]      * 0.8   # crisis magnitude
+        PANIC_WEIGHTS["event"]      * max(0, -event)  # crisis magnitude
         + PANIC_WEIGHTS["volatility"] * 1.0
         + PANIC_WEIGHTS["trend"]      * 1.0
     )  
@@ -51,13 +52,7 @@ def Compute_panic(event, volatility, trend):
     return panic
 
 
-def Update_price(price, demand, liquidity, volatility, panic):
-    # --------------------------------------------------------
-    # PRICE DISCOVERY MECHANISM
-    # --------------------------------------------------------
-    # demand_impact: soft-clamp of demand to (-1, 1).
-    # Formula x/(1+|x|) prevents any single massive order from
-    # sending price to infinity. Standard practice in order-book models.
+def Update_price(price, demand, liquidity, volatility):
     demand_impact = demand / (1 + np.absolute(demand))
 
     # liquidity_factor: when liquidity is thin (low L), each unit of
@@ -68,10 +63,11 @@ def Update_price(price, demand, liquidity, volatility, panic):
 
     # Microstructure noise: bid-ask bounce, rounding, order timing.
     # Scales with volatility because high-vol regimes have wider spreads.
-    BASE_NOISE = random.uniform(-0.002, 0.002)
-    noise = BASE_NOISE + (NOISE_ALPHA * volatility * random.choice([-1, 1]))
+    BASE_NOISE = random.uniform(-0.002, 0.002) * price
+    noise = BASE_NOISE + (price * (NOISE_ALPHA * volatility * random.choice([-1, 1])))
 
     price_change = (PRICE_SENSITIVITY * demand_impact * liquidity_factor) + noise
+    # price_change = (PRICE_SENSITIVITY * (demand / np.sqrt(max(1.0, liquidity)) )) + noise
     price += price_change
 
     # Limited liability: equity prices can't go below zero.
@@ -79,7 +75,9 @@ def Update_price(price, demand, liquidity, volatility, panic):
     return max(0.01, price)
 
 
-def update_liquidity(panic, previous_liquidity=L_0):
+def update_liquidity(panic, previous_liquidity=None):
+    if previous_liquidity is None:
+        previous_liquidity - L_0
     # --------------------------------------------------------
     # LIQUIDITY DYNAMICS
     # --------------------------------------------------------
@@ -100,7 +98,7 @@ def Compute_trend(current_price, previous_price, volatility):
         return 0.0
     change_in_price = current_price - previous_price
     trend = change_in_price / previous_price
-    trend = trend / max(volatility, 0.4)
+    trend = trend / max(volatility, MIN_VOLATILITY)
     trend = np.clip(trend, -1.0, 1.0)
     return trend
 

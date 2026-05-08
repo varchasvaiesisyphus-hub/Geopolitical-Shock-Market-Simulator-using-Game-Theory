@@ -250,7 +250,7 @@ def run_market_simulation():
         # ---- STEP 7: Update market state ----
         volatility = update_volatility(volatility, event_state, total_demand)
         liquidity  = update_liquidity(panic, liquidity)
-        price      = Update_price(price, total_demand, liquidity, volatility, panic)
+        price      = Update_price(price, total_demand, liquidity, volatility)
 
 
     final_summary = []

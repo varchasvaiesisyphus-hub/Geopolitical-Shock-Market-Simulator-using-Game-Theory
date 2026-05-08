@@ -42,7 +42,7 @@ BETA2 = 0.25  # demand-driven vol shock
 BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
 
 # ---- VALUE ANCHOR (EWMA) ----
-EWMA_ALPHA = 0.02
+EWMA_ALPHA = 0.05        #halflife = ln(2)/value
 
 # ---- LIQUIDITY ----
 L_0    = 10000   # baseline liquidity (shares available in the order book)
@@ -53,8 +53,7 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Define WHEN events occur (timestep key) and WHAT they are (string value).
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
-    5:  "strong_positive",  
-    30 : "crisis"
+
 }
 
 # Numeric initial impact of each event type.
@@ -77,7 +76,7 @@ EVENT_SCENARIOS = {
 PRICE_HISTORY = []
 
 # ---- NOISE MODEL ----
-NOISE_ALPHA = 0.01  # scales microstructure noise with volatility
+NOISE_ALPHA = 0.005  # scales microstructure noise with volatility
 
 # ---- AGENT POPULATIONS ----
 RETAIL_COUNT         = 50
