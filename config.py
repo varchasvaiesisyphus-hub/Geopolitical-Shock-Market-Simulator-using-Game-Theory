@@ -53,7 +53,8 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Define WHEN events occur (timestep key) and WHAT they are (string value).
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
-
+    #t : "event"
+    20 : "mild_positive"
 }
 
 # Numeric initial impact of each event type.

@@ -56,7 +56,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.50, 0.70),
             name          = f"contrarian_{j}",
             max_position_fraction = 0.25,
-            signal_threshold = random.uniform(0.03, 0.08),
+            signal_threshold = random.uniform(0.05, 0.1),
         )
 
         contrarian_agents.append(b)
@@ -104,7 +104,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.20, 0.30),
             name          = f"value_{v}",        
             max_position_fraction = 0.40,
-            signal_threshold = random.uniform(0.03, 0.10),
+            signal_threshold = random.uniform(0.25, 0.40),
         )
 
         value_investor_agents.append(e)
@@ -248,7 +248,7 @@ def run_market_simulation():
         market_data.append(data_dict)
 
         # ---- STEP 7: Update market state ----
-        volatility = update_volatility(volatility, event_state, total_demand)
+        volatility = update_volatility(volatility, event_state,liquidity, total_demand)
         liquidity  = update_liquidity(panic, liquidity)
         price      = Update_price(price, total_demand, liquidity, volatility)
 

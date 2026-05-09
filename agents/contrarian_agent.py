@@ -7,7 +7,7 @@ class ContrarianAgent(Agent):
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
-            - (0.60 * trend)                              # fade the trend
+            - (0.55 * trend)                              # fade the trend
             - (0.30 * event)                              # bad news = opportunity
             + (0.40 * panic)                              # buy the panic
             + (0.50 * value_signal)                       # PRIMARY value anchor
