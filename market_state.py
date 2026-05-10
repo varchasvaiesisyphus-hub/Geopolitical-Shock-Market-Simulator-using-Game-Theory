@@ -14,26 +14,29 @@ import random
 #   - liquidity:  how easy it is to transact without moving the price
 # ============================================================
 
-def compute_demand_impact(demand, liquidity):
-    liquidity_multiplier = 1 / (1 + liquidity) 
-    # liquidity_multiplier = 1 / np.sqrt(max(1.0, liquidity))
-
-    # 1. Demand is capped between -1 and 1
-    saturated_demand = demand / (1 + np.absolute(demand))
-
-    # 2. Liquidity Multiplier: Large when liquidity is small, small when liquidity is large.
-    # We add 1 to the denominator to prevent division by zero.
-    liquidity_multiplier = 1 / (1 + liquidity) 
-
-    # 3. Final Impact
-    demand_impact = saturated_demand * liquidity_multiplier
+def compute_demand_impact(demand):
+    demand_impact = demand/(1 + np.abs(demand))
 
     return demand_impact
+
+def Update_price(price, demand, liquidity, volatility):
+    demand_impact = compute_demand_impact(demand)
+
+    # Microstructure noise: bid-ask bounce, rounding, order timing.
+    # Scales with volatility because high-vol regimes have wider spreads.
+    BASE_NOISE = random.uniform(-0.002, 0.002) * price
+    noise = BASE_NOISE + (price * (NOISE_ALPHA * volatility * random.choice([-1, 1])))
+
     
+    price_change = (PRICE_SENSITIVITY *demand_impact) + noise
+    price += price_change
+
+
+    return max(0.01, price)
 
 def update_volatility(volatility, event, liquidity, demand=0):
 
-    demand_impact = compute_demand_impact(demand, liquidity)
+    demand_impact = compute_demand_impact(demand)
 
     volatility = (BETA1 * volatility                     # persistence
                 + (1 - BETA1) * BASE_VOLATILITY          # mean reversion ← THE FIX
@@ -68,23 +71,8 @@ def Compute_panic(event, volatility, trend):
     return panic
 
 
-def Update_price(price, demand, liquidity, volatility):
-    demand_impact = compute_demand_impact(demand, liquidity)
 
-    # Microstructure noise: bid-ask bounce, rounding, order timing.
-    # Scales with volatility because high-vol regimes have wider spreads.
-    BASE_NOISE = random.uniform(-0.002, 0.002) * price
-    noise = BASE_NOISE + (price * (NOISE_ALPHA * volatility * random.choice([-1, 1])))
-
-    
-    price_change = (PRICE_SENSITIVITY *demand_impact) + noise
-    price += price_change
-
-
-    return max(0.01, price)
-
-
-def update_liquidity(panic, previous_liquidity=None):
+def update_liquidity(panic, volatility, previous_liquidity=None):
     if previous_liquidity is None:
         previous_liquidity = L_0
     # --------------------------------------------------------

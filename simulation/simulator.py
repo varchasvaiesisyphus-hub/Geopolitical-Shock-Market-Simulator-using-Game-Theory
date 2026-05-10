@@ -1,5 +1,5 @@
 from config import *
-from market_state import update_volatility, Compute_panic, Update_price, update_liquidity, Compute_trend, compute_value_signal
+from market_state import update_volatility, Compute_panic, Update_price, update_liquidity, Compute_trend, compute_value_signal, compute_demand_impact
 from agents import contrarian_agent, institutional_agent, momentum_agent, retail_agent, value_investor
 from events.event import Compute_event_state
 import random
@@ -174,6 +174,7 @@ def run_market_simulation():
             "liquidity":    round(liquidity,     4),
             "ewma_price":   round(ewma_price,    4),
             "value_signal": round(value_signal,  4),
+            
         })
 
 
@@ -233,6 +234,8 @@ def run_market_simulation():
                 "order": order, 
             })
 
+        
+
         data_dict.update({
         "retail_demand" : retail_demand,
         "contrarian_demand" : contrarian_demand,
@@ -249,7 +252,7 @@ def run_market_simulation():
 
         # ---- STEP 7: Update market state ----
         volatility = update_volatility(volatility, event_state,liquidity, total_demand)
-        liquidity  = update_liquidity(panic, liquidity)
+        liquidity  = update_liquidity(panic,volatility, liquidity)
         price      = Update_price(price, total_demand, liquidity, volatility)
 
 

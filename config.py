@@ -27,7 +27,7 @@ PANIC_WEIGHTS = {
 
 # ---- PRICE MECHANICS ----
 LIQUIDITY_SENSITIVITY = 500   # (reserved for future use)
-MAX_LIQUIDITY_IMPACT  = 1     # (reserved for future use)
+MAX_LIQUIDITY_IMPACT  = 5     # (reserved for future use)
 PRICE_SENSITIVITY     = 5     # how strongly net demand moves price
 
 # ---- VOLATILITY UPDATE (GARCH-inspired) ----
@@ -38,7 +38,7 @@ MIN_VOLATILITY  = 0.010   # FIX (new): floor so vol never decays to zero.
                            # Without this floor, quiet periods produce vol≈0,
                            # which makes the vol-normalized trend meaningless.
 BETA1 = 0.60  # volatility persistence (how "sticky" yesterday's vol is)
-BETA2 = 0.25  # demand-driven vol shock
+BETA2 = 0.15  # demand-driven vol shock
 BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
 
 # ---- VALUE ANCHOR (EWMA) ----
@@ -54,7 +54,8 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
     #t : "event"
-    20 : "mild_positive"
+    20 : "strong_positive",
+    60 : "crisis",
 }
 
 # Numeric initial impact of each event type.
