@@ -14,13 +14,15 @@ import random
 #   - liquidity:  how easy it is to transact without moving the price
 # ============================================================
 
-def compute_demand_impact(demand):
-    demand_impact = demand/(1 + np.abs(demand))
+def compute_demand_impact(demand, liquidity):
+    saturated_demand = demand/(1 + np.abs(demand))
+    liquidity_impact = L_0/liquidity
+    demand_impact =  saturated_demand * liquidity_impact
 
     return demand_impact
 
 def Update_price(price, demand, liquidity, volatility):
-    demand_impact = compute_demand_impact(demand)
+    demand_impact = compute_demand_impact(demand, liquidity)
 
     # Microstructure noise: bid-ask bounce, rounding, order timing.
     # Scales with volatility because high-vol regimes have wider spreads.
@@ -36,7 +38,7 @@ def Update_price(price, demand, liquidity, volatility):
 
 def update_volatility(volatility, event, liquidity, demand=0):
 
-    demand_impact = compute_demand_impact(demand)
+    demand_impact = compute_demand_impact(demand, liquidity)
 
     volatility = (BETA1 * volatility                     # persistence
                 + (1 - BETA1) * BASE_VOLATILITY          # mean reversion ← THE FIX
@@ -52,21 +54,19 @@ def update_volatility(volatility, event, liquidity, demand=0):
 def Compute_panic(event, volatility, trend):
 
     
+    if event < 0:    #negative event
+        event_component = NEGATIVE_EVENT_PANIC_WEIGHTS["event"]      * max(0, -event)
+        vol_component   = NEGATIVE_EVENT_PANIC_WEIGHTS["volatility"] * volatility
+        trend_component = NEGATIVE_EVENT_PANIC_WEIGHTS["trend"]      * max(0, -trend)  # only falling trends add panic
 
-    event_component = PANIC_WEIGHTS["event"]      * max(0, -event)
-    vol_component   = PANIC_WEIGHTS["volatility"] * volatility
-    trend_component = PANIC_WEIGHTS["trend"]      * max(0, -trend)  # only falling trends add panic
+        panic = event_component + vol_component + trend_component
+    
+    elif event >=0:   #positive event
+        vol_component   = POSITIVE_EVENT_PANIC_WEIGHTS["volatility"] * volatility
+        trend_component = POSITIVE_EVENT_PANIC_WEIGHTS["trend"]      * max(0, -trend)  # only falling trends add panic
 
-    raw_panic = event_component + vol_component + trend_component
+        panic = vol_component + trend_component
 
-
-    max_possible_panic = (
-        PANIC_WEIGHTS["event"]      * max(0, -event)  # crisis magnitude
-        + PANIC_WEIGHTS["volatility"] * 1.0
-        + PANIC_WEIGHTS["trend"]      * 1.0
-    )  
-
-    panic = raw_panic / max_possible_panic
     panic = np.clip(panic, 0.0, 1.0)
     return panic
 
@@ -85,19 +85,26 @@ def update_liquidity(panic, volatility, previous_liquidity=None):
     # When panic subsides, liquidity gradually recovers — not instantly.
     # This models the reality that market makers return cautiously after
     # stress events.
-    liquidity = previous_liquidity - GAMMA * panic + DELTA * (L_0 - previous_liquidity)
+    liquidity = previous_liquidity - GAMMA * (panic+volatility) + DELTA * (L_0 - previous_liquidity) 
     return max(1.0, liquidity)
 
 
-def Compute_trend(current_price, previous_price, volatility):
+def Compute_trend(price, t ,k = 15, prev_EMA = 0, n = 10):
 
-    if previous_price == 0:
+    if prev_EMA == 0:
         return 0.0
-    change_in_price = current_price - previous_price
-    trend = change_in_price / previous_price
-    trend = trend / max(volatility, MIN_VOLATILITY)
-    trend = np.clip(trend, -1.0, 1.0)
+        
+    current_EMA = (price * (2/n+1)) + (prev_EMA *(1 - (2/n+1)))
+
+    deviation = (price - current_EMA)/ current_EMA
+
+
+    trend = np.tanh(k*deviation)
+    trend = np.clip(trend, -1, +1)
+        
+    
     return trend
+
 
 
 

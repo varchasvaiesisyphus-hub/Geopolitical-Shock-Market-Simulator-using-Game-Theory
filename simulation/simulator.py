@@ -14,6 +14,7 @@ def run_market_simulation():
     # ---- INITIALIZE MARKET STATE ----
     price      = INITIAL_PRICE
     ewma_price = float(INITIAL_PRICE)
+    ewma_trend = float(INITIAL_PRICE)
     liquidity  = L_0
     volatility = BASE_VOLATILITY
 
@@ -38,7 +39,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.40, 0.80),
             name          = f"retail_{i}",
             max_position_fraction =  0.70,
-            signal_threshold = random.uniform(0.1, 0.2)
+            signal_threshold = random.uniform(0.025, 0.01)
         )
 
         retail_agents.append(a)
@@ -56,7 +57,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.50, 0.70),
             name          = f"contrarian_{j}",
             max_position_fraction = 0.25,
-            signal_threshold = random.uniform(0.05, 0.1),
+            signal_threshold = random.uniform(0.03, 0.09),
         )
 
         contrarian_agents.append(b)
@@ -72,7 +73,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.20, 0.40),
             name          = f"institutional_{l}",
             max_position_fraction = 0.15,
-            signal_threshold = random.uniform(0.08, 0.15),
+            signal_threshold = random.uniform(0.09, 0.15),
         )
 
         institutional_agents.append(c)
@@ -88,7 +89,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.70, 0.90),
             name          = f"momentum_{m}",
             max_position_fraction = 0.60,
-            signal_threshold = random.uniform(0.02, 0.06)
+            signal_threshold = random.uniform(0.05, 0.09)
         )
 
         momentum_agents.append(d)
@@ -104,7 +105,7 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.20, 0.30),
             name          = f"value_{v}",        
             max_position_fraction = 0.40,
-            signal_threshold = random.uniform(0.25, 0.40),
+            signal_threshold = random.uniform(0.8, 0.12),
         )
 
         value_investor_agents.append(e)
@@ -145,7 +146,8 @@ def run_market_simulation():
         data_dict = {"time": t}
 
         # ---- STEP 2: Update EWMA ----
-        ewma_price = EWMA_ALPHA * price + (1 - EWMA_ALPHA) * ewma_price
+        ewma_price = VALUE_EWMA_ALPHA * price + (1 - VALUE_EWMA_ALPHA) * ewma_price
+        ewma_trend = TREND_EWMA_ALPHA * price + (1 - TREND_EWMA_ALPHA) * ewma_trend
 
         # ---- STEP 3: Event state ----
         # Sum all active events' decayed impacts.
@@ -160,7 +162,7 @@ def run_market_simulation():
 
         # ---- STEP 4: Market features ----
         previous_price = PRICE_HISTORY[-2] if t > 0 else price
-        trend        = Compute_trend(price, previous_price, volatility)
+        trend        = Compute_trend(price = price, t = t, prev_EMA = ewma_trend)
         panic        = Compute_panic(event_state, volatility, trend)
         value_signal = compute_value_signal(price, ewma_price)
 
@@ -246,14 +248,17 @@ def run_market_simulation():
         })
 
 
-        # STORING MARKET STATE DATA
-        data_dict.update({'price' : price})
-        market_data.append(data_dict)
+
 
         # ---- STEP 7: Update market state ----
         volatility = update_volatility(volatility, event_state,liquidity, total_demand)
         liquidity  = update_liquidity(panic,volatility, liquidity)
         price      = Update_price(price, total_demand, liquidity, volatility)
+
+
+        # STORING MARKET STATE DATA
+        data_dict.update({'price' : price})
+        market_data.append(data_dict)
 
 
     final_summary = []

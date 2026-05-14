@@ -19,10 +19,15 @@ VOL_NORMALIZATION = 0.05   # minimum vol floor for normalization
 # Event (negative news): highest weight — news is the primary panic driver.
 # Volatility: moderate — high vol increases uncertainty, which feeds fear.
 # Trend: moderate — a falling trend scares people more than rising vol alone.
-PANIC_WEIGHTS = {
+NEGATIVE_EVENT_PANIC_WEIGHTS = {
     "event":      1.0,
     "volatility": 0.40,
     "trend":      0.60
+}
+
+POSITIVE_EVENT_PANIC_WEIGHTS = {
+    "volatility": 0.20,
+    "trend":      0.30
 }
 
 # ---- PRICE MECHANICS ----
@@ -41,8 +46,9 @@ BETA1 = 0.60  # volatility persistence (how "sticky" yesterday's vol is)
 BETA2 = 0.15  # demand-driven vol shock
 BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
 
-# ---- VALUE ANCHOR (EWMA) ----
-EWMA_ALPHA = 0.05        #halflife = ln(2)/value
+# ----(EWMA) ----
+VALUE_EWMA_ALPHA = 0.025        #halflife = ln(2)/value
+TREND_EWMA_ALPHA = 0.18
 
 # ---- LIQUIDITY ----
 L_0    = 10000   # baseline liquidity (shares available in the order book)

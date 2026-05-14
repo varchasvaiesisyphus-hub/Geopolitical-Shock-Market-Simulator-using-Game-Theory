@@ -37,7 +37,7 @@ class value_investor_agent(Agent):
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
               (0.90 * value_signal)  # DOMINANT: buy cheap, sell expensive
-            - (0.20 * panic)         # cautious: real crises can impair fundamentals
+            - (0.10 * panic)         # cautious: real crises can impair fundamentals
             + (0.10 * trend)         # weak: don't fight very strong momentum
             + (0.05 * event)         # minimal news sensitivity
             - (0.05 * volatility)    # minimal vol sensitivity (long time horizon)

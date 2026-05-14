@@ -33,21 +33,23 @@ class Momentum_Agent(Agent):
         self.avg_history = []
 
     def decide_order(self, price, signal):
-        # Momentum agents need price history to compute their rolling signal.
-        # If history is too short, they sit out (return 0)
 
-        
         if abs(signal) <= self.signal_threshold:
             return 0.0
 
-        order = (self.k * signal * self.cash) / price 
+        order = (self.k * signal * self.cash) / price   #number of shares 
 
         if order > 0:
             max_holding = (self.initial_cash/ price) * self.max_position_fraction
             
             if self.position < max_holding:
+            
                 remaining_position = max_holding - self.position
-                order = min([order, remaining_position])
+                if self.cash > (remaining_position*price):
+                    order = min([order, remaining_position])
+                else:
+                    order = self.cash / price
+
             else:
                 order = 0
 
@@ -76,9 +78,9 @@ class Momentum_Agent(Agent):
             return 0.0   # not enough history yet — be neutral
 
         signal = (
-              (trend        * 0.60)   # smoothed rolling trend (primary signal)
-            + (event        * 0.30)   # news amplifies the trend
-            - (panic        * 0.40)   # panic = possible trend snap → reduce
+              (trend        * 0.50)   # smoothed rolling trend (primary signal)
+            + (event        * 0.40)   # news amplifies the trend
+            - (panic        * 0.30)   # panic = possible trend snap → reduce
             - (volatility   * 0.40)   # noisy environment → reduce conviction
             + (value_signal * 0.10)   # guard: don't short deeply distressed assets
         )
