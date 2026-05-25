@@ -23,6 +23,8 @@ def run_market_simulation():
     initial_agent_registry = [] # For: AGENT_NAME -> INITIAL DATA
     operational_market_log = [] # For: T -> OPERATIONAL DATA
 
+    retail_exit_log = []
+
 
 
     # ============================================================
@@ -170,7 +172,7 @@ def run_market_simulation():
         data_dict.update({
             "event":        current_event_label,
             "event_state":  round(event_state,  6),
-            "trend":        round(trend,         6),
+           
             "panic":        round(panic,         6),
             "volatility":   round(volatility,    6),
             "liquidity":    round(liquidity,     4),
@@ -200,10 +202,30 @@ def run_market_simulation():
                 momentum_demand += order
 
             elif isinstance(agent, retail_agent.Retail_Agent):
-                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
-                order = agent.decide_order(price, signal)
+                exit_signal, exit_type  = agent.compute_exit_signal(price, panic)
+                if exit_signal == 0:  #no trigger
+                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    order = agent.decide_order(price, signal)
+                    
+                elif exit_signal != 0:
+                    order = exit_signal #since exit signal is self.position   
+
+                    retail_exit_log.append(
+                        {
+                            "t" : t,
+                            "agent_name" : agent.name,
+                            "exit_type" : exit_type,
+                            "entry_price" : agent.entry_price,
+                            "exit_price" : price,
+                            "position" : agent.position,
+                            "realised_PnL" : (price - agent.entry_price) * agent.position,
+                        }
+                    )                                       
+                                            
+                                            
+                    
                 retail_demand += order
-            
+
             elif isinstance(agent, contrarian_agent.ContrarianAgent):
                 signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
                 order = agent.decide_order(price, signal)  
@@ -239,6 +261,7 @@ def run_market_simulation():
         
 
         data_dict.update({
+         "trend":        round(trend,         6),
         "retail_demand" : retail_demand,
         "contrarian_demand" : contrarian_demand,
         "momentum_demand" : momentum_demand,
@@ -281,6 +304,7 @@ def run_market_simulation():
     pd.DataFrame(operational_market_log).to_csv(DATA_DIR / "market_operations.csv", index=False)
     pd.DataFrame(final_summary).to_csv(DATA_DIR / "simulation_summary.csv", index=False)
     pd.DataFrame(market_data).to_csv(DATA_DIR / "MARKET_STATE_DATA.csv", index=False)
+    pd.DataFrame(retail_exit_log).to_csv(DATA_DIR / "RETAIL_EXIT_LOG.csv", index=False)
 
     print(f"\nSimulation complete. Data saved to {DATA_DIR}")   
 

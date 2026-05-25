@@ -8,7 +8,7 @@
 # ============================================================
 
 # ---- SIMULATION ----
-T = 100   # number of timesteps (think of each as one trading "day")
+T = 200   # number of timesteps (think of each as one trading "day")
 
 # ---- TREND COMPUTATION ----
 TREND_CLIP        = 0.05   # (currently unused — kept for future use)
@@ -60,8 +60,8 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
     #t : "event"
-    20 : "strong_positive",
-    60 : "crisis",
+    60 : "strong_positive",
+    160 : "crisis",
 }
 
 # Numeric initial impact of each event type.
@@ -98,3 +98,10 @@ INITIAL_PRICE = 100.0
 
 # ---- EVENT HISTORY (reserved for future use) ----
 EVENT_HISTORY = {}
+
+
+#POSITION MAKING
+
+    #RETAIL
+BASE_RETAIL_LOSS_RATE = 0.1
+BASE_RETAIL_PROFIT_RATE = 0.3

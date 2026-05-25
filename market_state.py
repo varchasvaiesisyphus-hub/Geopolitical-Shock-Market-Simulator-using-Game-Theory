@@ -94,7 +94,7 @@ def Compute_trend(price, t ,k = 15, prev_EMA = 0, n = 10):
     if prev_EMA == 0:
         return 0.0
         
-    current_EMA = (price * (2/n+1)) + (prev_EMA *(1 - (2/n+1)))
+    current_EMA = (price * (2/(n+1))) + (prev_EMA *(1 - (2/(n+1))))
 
     deviation = (price - current_EMA)/ current_EMA
 
