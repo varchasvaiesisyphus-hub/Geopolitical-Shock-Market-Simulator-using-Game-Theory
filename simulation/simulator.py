@@ -9,6 +9,8 @@ from pathlib import Path
 # Set up the data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
+AGENT_EXIT_LOG_DIR = DATA_DIR / "agent_exit_log"
+AGENT_EXIT_LOG_DIR.mkdir(exist_ok=True)
 
 def run_market_simulation():
     # ---- INITIALIZE MARKET STATE ----
@@ -24,6 +26,10 @@ def run_market_simulation():
     operational_market_log = [] # For: T -> OPERATIONAL DATA
 
     retail_exit_log = []
+    contrarian_exit_log = []
+    institutional_exit_log = []
+    momentum_exit_log = []
+    value_investor_exit_log = []
 
 
 
@@ -194,55 +200,72 @@ def run_market_simulation():
 
 
         for agent in all_agents:
-            # 5.1 Decide action
+            # 5.1 Check for exit signals first (applies to all agents)
+            exit_signal, exit_type = agent.compute_exit_signal(price, panic)
 
-            if isinstance(agent, momentum_agent.Momentum_Agent):
-                signal = agent.compute_signal(volatility, event_state, panic,PRICE_HISTORY, value_signal)
-                order = agent.decide_order(price, signal)
-                momentum_demand += order
+            if exit_signal != 0:
+                # Exit signal triggered - close position
+                order = exit_signal
+                signal = 0  # Exit overrides signal computation
 
-            elif isinstance(agent, retail_agent.Retail_Agent):
-                exit_signal, exit_type  = agent.compute_exit_signal(price, panic)
-                if exit_signal == 0:  #no trigger
+                # Log the exit
+                agent_category = agent.__class__.__name__.replace("_Agent", "")
+                exit_log_entry = {
+                    "t": t,
+                    "agent_name": agent.name,
+                    "exit_type": exit_type,
+                    "entry_price": agent.entry_price,
+                    "exit_price": price,
+                    "position": agent.position,
+                    "realised_PnL": (price - agent.entry_price) * agent.position,
+                }
+
+                if isinstance(agent, retail_agent.Retail_Agent):
+                    retail_exit_log.append(exit_log_entry)
+                elif isinstance(agent, contrarian_agent.ContrarianAgent):
+                    contrarian_exit_log.append(exit_log_entry)
+                elif isinstance(agent, institutional_agent.Institutional_Agent):
+                    institutional_exit_log.append(exit_log_entry)
+                elif isinstance(agent, momentum_agent.Momentum_Agent):
+                    momentum_exit_log.append(exit_log_entry)
+                elif isinstance(agent, value_investor.value_investor_agent):
+                    value_investor_exit_log.append(exit_log_entry)
+            else:
+                # No exit triggered - compute signal and decide order normally
+                if isinstance(agent, momentum_agent.Momentum_Agent):
+                    signal = agent.compute_signal(volatility, event_state, panic, PRICE_HISTORY, value_signal)
+                    order = agent.decide_order(price, signal)
+
+                elif isinstance(agent, retail_agent.Retail_Agent):
                     signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
                     order = agent.decide_order(price, signal)
-                    
-                elif exit_signal != 0:
-                    order = exit_signal #since exit signal is self.position   
 
-                    retail_exit_log.append(
-                        {
-                            "t" : t,
-                            "agent_name" : agent.name,
-                            "exit_type" : exit_type,
-                            "entry_price" : agent.entry_price,
-                            "exit_price" : price,
-                            "position" : agent.position,
-                            "realised_PnL" : (price - agent.entry_price) * agent.position,
-                        }
-                    )                                       
-                                            
-                                            
-                    
+                elif isinstance(agent, contrarian_agent.ContrarianAgent):
+                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    order = agent.decide_order(price, signal)
+
+                elif isinstance(agent, institutional_agent.Institutional_Agent):
+                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    order = agent.decide_order(price, signal)
+
+                elif isinstance(agent, value_investor.value_investor_agent):
+                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    order = agent.decide_order(price, signal)
+
+                else:
+                    raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
+
+            # Track demand by agent type
+            if isinstance(agent, retail_agent.Retail_Agent):
                 retail_demand += order
-
             elif isinstance(agent, contrarian_agent.ContrarianAgent):
-                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
-                order = agent.decide_order(price, signal)  
                 contrarian_demand += order
-
+            elif isinstance(agent, momentum_agent.Momentum_Agent):
+                momentum_demand += order
             elif isinstance(agent, institutional_agent.Institutional_Agent):
-                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
-                order = agent.decide_order(price, signal)
                 institutional_demand += order
-
             elif isinstance(agent, value_investor.value_investor_agent):
-                signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
-                order = agent.decide_order(price, signal)
                 value_investor_demand += order
-            
-            else:
-                raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
 
 
             # 2. Update Demand & Agent State
@@ -304,7 +327,11 @@ def run_market_simulation():
     pd.DataFrame(operational_market_log).to_csv(DATA_DIR / "market_operations.csv", index=False)
     pd.DataFrame(final_summary).to_csv(DATA_DIR / "simulation_summary.csv", index=False)
     pd.DataFrame(market_data).to_csv(DATA_DIR / "MARKET_STATE_DATA.csv", index=False)
-    pd.DataFrame(retail_exit_log).to_csv(DATA_DIR / "RETAIL_EXIT_LOG.csv", index=False)
+    pd.DataFrame(retail_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "RETAIL_EXIT_LOG.csv", index=False)
+    pd.DataFrame(contrarian_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "CONTRARIAN_EXIT_LOG.csv", index=False)
+    pd.DataFrame(institutional_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "INSTITUTIONAL_EXIT_LOG.csv", index=False)
+    pd.DataFrame(momentum_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "MOMENTUM_EXIT_LOG.csv", index=False)
+    pd.DataFrame(value_investor_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "VALUE_INVESTOR_EXIT_LOG.csv", index=False)
 
     print(f"\nSimulation complete. Data saved to {DATA_DIR}")   
 

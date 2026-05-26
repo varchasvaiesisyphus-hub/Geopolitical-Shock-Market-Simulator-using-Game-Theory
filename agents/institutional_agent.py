@@ -1,5 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
+from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE
 
 # ============================================================
 # INSTITUTIONAL AGENT
@@ -35,3 +36,29 @@ class Institutional_Agent(Agent):
             + (0.30 * value_signal)  # fundamental value anchor
         )
         return np.clip(signal, -1.0, 1.0)
+
+    def compute_exit_signal(self, price, panic):
+
+        if self.position == 0:
+            return 0, "no existing positions"
+
+        # Institutions have tight stops due to risk management mandates
+        # They prioritize capital preservation and compliance
+        stoploss_pct = BASE_INSTITUTIONAL_LOSS_RATE * self.risk_aversion
+        takeprofit_pct = BASE_INSTITUTIONAL_PROFIT_RATE / self.risk_aversion
+
+        stoploss = self.entry_price - self.entry_price * stoploss_pct
+        takeprofit = self.entry_price + self.entry_price * takeprofit_pct
+
+        if price > stoploss and price < takeprofit:
+             return 0, "hold"
+
+        elif price < stoploss:
+            return -self.position, "stop-loss"
+
+        elif price > takeprofit:
+             return -self.position, "take-profit"
+        
+# obtain portfolio pnl = capital - unrealised loss/profit 
+# which is the same as unrealised pnl since we are taking avg entry point. 
+# multiple entries combine into the same entrt point. 

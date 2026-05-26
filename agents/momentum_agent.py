@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import PRICE_HISTORY
+from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE
 # ============================================================
 # MOMENTUM AGENT
 # ============================================================
@@ -104,6 +104,30 @@ class Momentum_Agent(Agent):
             return 0.0
         trend = (current_avg - previous_avg) / previous_avg
         return float(np.clip(trend, -1.0, 1.0))
+
+    def compute_exit_signal(self, price, panic):
+
+        if self.position == 0:
+            return 0, "no existing positions"
+
+        # Momentum traders use medium stops; they follow trends but cut losses quickly
+        # on trend breaks to avoid being trapped in reversals
+        stoploss_pct = BASE_MOMENTUM_LOSS_RATE * self.risk_aversion
+        # takeprofit_pct = BASE_MOMENTUM_PROFIT_RATE / self.risk_aversion
+        takeprofit_pct = 0.1 * self.entry_price
+
+        stoploss = self.entry_price - self.entry_price * stoploss_pct
+        takeprofit = self.entry_price + self.entry_price * takeprofit_pct
+
+        if price > stoploss and price < takeprofit:
+             return 0, "hold"
+
+        elif price < stoploss:
+            return -self.position, "stop-loss"
+
+        elif price > takeprofit:
+             return -self.position, "take-profit"
+
 
 
 

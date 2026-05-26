@@ -102,6 +102,27 @@ EVENT_HISTORY = {}
 
 #POSITION MAKING
 
+# Exit thresholds for each agent type
+# Determines stop-loss (%) and take-profit (%) levels based on risk_aversion
+# Higher risk_aversion = tighter stops, smaller profits (conservative)
+# Lower risk_aversion = wider stops, larger profits (aggressive)
+
     #RETAIL
 BASE_RETAIL_LOSS_RATE = 0.1
 BASE_RETAIL_PROFIT_RATE = 0.3
+
+    #CONTRARIAN
+BASE_CONTRARIAN_LOSS_RATE = 0.15
+BASE_CONTRARIAN_PROFIT_RATE = 0.25
+
+    #INSTITUTIONAL
+BASE_INSTITUTIONAL_LOSS_RATE = 0.08
+BASE_INSTITUTIONAL_PROFIT_RATE = 0.20
+
+    #MOMENTUM
+BASE_MOMENTUM_LOSS_RATE = 0.12
+BASE_MOMENTUM_PROFIT_RATE = 0.28
+
+    #VALUE INVESTOR
+BASE_VALUE_INVESTOR_LOSS_RATE = 0.20
+BASE_VALUE_INVESTOR_PROFIT_RATE = 0.40
