@@ -17,3 +17,15 @@ each time an entry is made --> record t--> avg it [do it with the avging the pri
 """
 
 print(max(l))
+
+
+"""
+| Market Regime   | Suggested gamma | Interpretation                                      |
+| --------------- | ----------: | --------------------------------------------------- |
+| no_event        |        5-15 | Normal fluctuations, stable market making           |
+| mild_positive   |         2-8 | Liquidity providers become slightly more aggressive |
+| strong_positive |     -5 to 5 | Excess liquidity entering market                    |
+| mild_negative   |      40-120 | Noticeable liquidity withdrawal                     |
+| crisis          |     300-500 | Severe liquidity evaporation                        |
+
+"""

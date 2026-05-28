@@ -52,7 +52,7 @@ TREND_EWMA_ALPHA = 0.18
 
 # ---- LIQUIDITY ----
 L_0    = 10000   # baseline liquidity (shares available in the order book)
-GAMMA  = 500     # panic-driven liquidity drain rate
+# GAMMA  = 500     # panic-driven liquidity drain rate
 DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 
 # ---- EVENTS ----
