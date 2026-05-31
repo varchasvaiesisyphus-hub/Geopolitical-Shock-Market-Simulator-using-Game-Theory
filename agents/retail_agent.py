@@ -51,7 +51,7 @@ class Retail_Agent(Agent):
         if price > stoploss and price < takeprofit:
              return 0, "hold"
 
-        elif price < stoploss :
+        elif price < stoploss or panic > self.risk_aversion:   #added risk aversion and panic to the exit signal
             return -self.position, "stop-loss"
 
         elif price > takeprofit:

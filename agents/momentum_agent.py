@@ -25,12 +25,15 @@ from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_
 
 class Momentum_Agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None, lookback = 0):
+        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, lookback)
         # avg_history: stores rolling average prices across timesteps.
         # By comparing consecutive entries we measure "is the smoothed
         # trend itself accelerating or decelerating?" — second-order momentum.
         self.avg_history = []
+        self.entry_t = 0
+        self.current_high = 0
+        self.lookback = lookback
 
     def decide_order(self, price, signal):
 
@@ -89,7 +92,9 @@ class Momentum_Agent(Agent):
     def compute_rolling_avg(self, price_history):
         # Take the last 5 prices and compute their mean.
         # np.mean() handles lists and arrays; no manual division needed.
-        recent_prices = price_history[-5:]
+        if len(price_history) < self.lookback:
+            return None
+        recent_prices = price_history[-self.lookback:]
         avg_price     = float(np.mean(recent_prices))
         self.avg_history.append(avg_price)
         return avg_price
@@ -110,23 +115,43 @@ class Momentum_Agent(Agent):
         if self.position == 0:
             return 0, "no existing positions"
 
-        # Momentum traders use medium stops; they follow trends but cut losses quickly
-        # on trend breaks to avoid being trapped in reversals
-        stoploss_pct = BASE_MOMENTUM_LOSS_RATE * self.risk_aversion
-        # takeprofit_pct = BASE_MOMENTUM_PROFIT_RATE / self.risk_aversion
-        takeprofit_pct = 0.1 * self.entry_price
+        stoploss = self.current_high - (self.current_high*(0.1- self.risk_aversion))  #higher the risk aversion lower the trailing percentage (5-10%)
 
-        stoploss = self.entry_price - self.entry_price * stoploss_pct
-        takeprofit = self.entry_price + self.entry_price * takeprofit_pct
-
-        if price > stoploss and price < takeprofit:
+        if price > stoploss:
              return 0, "hold"
 
-        elif price < stoploss:
+        elif price <= stoploss:
             return -self.position, "stop-loss"
 
-        elif price > takeprofit:
-             return -self.position, "take-profit"
+
+    def update_state(self, order, price, t):
+        old_position = self.position
+        super().update_state(order, price)
+
+        
+        new_position = old_position + order
+
+        old_entry_t = self.entry_t
+        new_entry_t = old_entry_t + t
+
+        #case 1: fresh position 
+        if old_position == 0:
+            self.entry_t = t
+
+        #case 2: complete exit
+        elif new_position == 0:
+            self.entry_t = 0
+
+
+        #case 3: increase/ decrease in position 
+        elif new_position != old_position:
+            self.entry_t = t
+
+
+        #find highest price since entry t
+        #create a sublist starting from entry_t to present PRICE_HISTORY[entry_t:]  #assuming index = t
+        if self.position > 0:
+            self.current_high = max(self.current_high, price)
 
 
 

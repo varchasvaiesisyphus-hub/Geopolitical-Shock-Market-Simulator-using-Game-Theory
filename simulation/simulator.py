@@ -62,7 +62,7 @@ def run_market_simulation():
         b = contrarian_agent.ContrarianAgent(
             cash          = random.randint(15_000, 25_000),
             k             = random.uniform(0.75, 0.95),
-            risk_aversion = random.uniform(0.50, 0.70),
+            risk_aversion = random.uniform(0.1, 0.2),
             name          = f"contrarian_{j}",
             max_position_fraction = 0.25,
             signal_threshold = random.uniform(0.03, 0.09),
@@ -94,10 +94,11 @@ def run_market_simulation():
         d = momentum_agent.Momentum_Agent(
             cash          = random.randint(40_000, 60_000),
             k             = random.uniform(0.35, 0.45),
-            risk_aversion = random.uniform(0.70, 0.90),
+            risk_aversion = random.uniform(0.00, 0.05),
             name          = f"momentum_{m}",
             max_position_fraction = 0.60,
-            signal_threshold = random.uniform(0.05, 0.09)
+            signal_threshold = random.uniform(0.05, 0.09),
+            lookback = random.choice([5,10,20,50])
         )
 
         momentum_agents.append(d)
@@ -258,19 +259,28 @@ def run_market_simulation():
             # Track demand by agent type
             if isinstance(agent, retail_agent.Retail_Agent):
                 retail_demand += order
+                agent.update_state(order, price) 
+
             elif isinstance(agent, contrarian_agent.ContrarianAgent):
                 contrarian_demand += order
+                agent.update_state(order, price, ewma_price)
+
             elif isinstance(agent, momentum_agent.Momentum_Agent):
                 momentum_demand += order
+                agent.update_state(order, price, t)
+
             elif isinstance(agent, institutional_agent.Institutional_Agent):
                 institutional_demand += order
+                agent.update_state(order, price)
+                
             elif isinstance(agent, value_investor.value_investor_agent):
                 value_investor_demand += order
+                agent.update_state(order, price)
 
 
-            # 2. Update Demand & Agent State
+            # 2. Update Demand
             total_demand += order
-            agent.update_state(order, price)
+
 
             # 3. Log immediately (Use the 'order' variable directly)
             operational_market_log.append({
@@ -284,7 +294,7 @@ def run_market_simulation():
         
 
         data_dict.update({
-         "trend":        round(trend,         6),
+        "trend":        round(trend,         6),
         "retail_demand" : retail_demand,
         "contrarian_demand" : contrarian_demand,
         "momentum_demand" : momentum_demand,
