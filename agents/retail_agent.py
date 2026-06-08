@@ -29,8 +29,8 @@ class Retail_Agent(Agent):
         signal = (
               (0.20 * trend)         # weak trend-following
             + (0.45 * event)         # news reactive
-            - (0.55 * panic)         # DOMINANT: panic-driven selling --> Headline + public fear  
-            - (0.30 * volatility)    # vol-averse
+            - ((0.55 * panic) if panic > 0.03 else 0)         # DOMINANT: panic-driven selling --> Headline + public fear  
+            - ((0.30 * volatility) if volatility> 0.1 else 0)    # vol-averse
             + (0.15 * value_signal)  # weak value anchor — last to buy the dip
         )
         return np.clip(signal, -1.0, 1.0)
