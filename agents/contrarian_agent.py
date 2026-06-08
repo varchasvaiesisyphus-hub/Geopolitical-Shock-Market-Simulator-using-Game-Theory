@@ -25,7 +25,7 @@ class ContrarianAgent(Agent):
             - (0.30 * event)                              # bad news = opportunity
             + (0.40 * panic)                              # buy the panic
             + (0.50 * value_signal)                       # PRIMARY value anchor
-            + ((-trend * 0.00001) * 0.2 * volatility)    # small non-linear vol term
+            - ((np.sign(trend)) * 0.2 * volatility)    # small non-linear vol term
         )
         return np.clip(signal, -1.0, 1.0)
     

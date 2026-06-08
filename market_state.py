@@ -93,18 +93,23 @@ def Update_price(price, demand, liquidity, volatility):
     return max(0.01, new_price)
 
 def update_volatility(volatility, event, liquidity, demand=0):
-
+    noise = np.random.normal(0, 0.02)
     demand_impact = compute_demand_impact(demand, liquidity)
 
     volatility = (BETA1 * volatility                     # persistence
                 + (1 - BETA1) * BASE_VOLATILITY          # mean reversion ← THE FIX
                 + BETA2 * abs(demand_impact)             # demand shock
-                + BETA3 * max(0, -event))                # event shock
-
+                + BETA3 * max(0, -event)                 # event shock
+                + noise)                                 # noise
+                
+    """
+    to add in future :- 
+        high volatility  → more sensitive to new shocks                    
+    """
 
 
     
-    return np.clip(volatility, -0.99, 0.99)
+    return np.clip(volatility, 0.01, 0.99)
 
 
 def Compute_panic(event, volatility, trend):

@@ -32,7 +32,7 @@ class Institutional_Agent(Agent):
               (0.40 * trend)         # trend-aware (not blind follower)
             + (0.40 * event)         # news-driven via research
             - (0.25 * volatility)    # vol-targeting risk mandate
-            - (0.30 * panic)         # low emotional sensitivity
+            - ((0.30 * panic) if panic >= 0.6 else 0)         # low emotional sensitivity
             + (0.30 * value_signal)  # fundamental value anchor
         )
         return np.clip(signal, -1.0, 1.0)

@@ -42,9 +42,9 @@ MIN_VOLATILITY  = 0.010   # FIX (new): floor so vol never decays to zero.
                            # Real markets have irreducible microstructure noise.
                            # Without this floor, quiet periods produce vol≈0,
                            # which makes the vol-normalized trend meaningless.
-BETA1 = 0.92  # volatility persistence (how "sticky" yesterday's vol is)
-BETA2 = 0.25  # demand-driven vol shock
-BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
+BETA1 = 0.85  # volatility persistence (how "sticky" yesterday's vol is)
+BETA2 = 0.15  # demand-driven vol shock
+BETA3 = 0.10  # event-driven vol spike (only negative events — see market_state.py)
 
 # ----(EWMA) ----
 VALUE_EWMA_ALPHA = 0.025        #halflife = ln(2)/value
