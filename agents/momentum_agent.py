@@ -35,7 +35,7 @@ class Momentum_Agent(Agent):
         self.current_high = 0
         self.lookback = lookback
 
-    def decide_order(self, price, signal):
+    def decide_order(self, price, signal, liquidity):
 
         if abs(signal) <= self.signal_threshold:
             return 0.0
@@ -65,7 +65,16 @@ class Momentum_Agent(Agent):
                 order = 0
 
 
-        return np.round(order, 0)
+        order_size = order * price
+        participation_rate = order_size/liquidity
+        if participation_rate < 0.1:
+            order = np.round(order, 0)
+        else:
+            max_capital_to_spend = participation_rate * liquidity
+            order = max_capital_to_spend/price
+            order = np.round(order, 0)
+            
+        return order
 
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:
@@ -110,7 +119,7 @@ class Momentum_Agent(Agent):
         trend = (current_avg - previous_avg) / previous_avg
         return float(np.clip(trend, -1.0, 1.0))
 
-    def compute_exit_signal(self, price, panic):
+    def compute_exit_signal(self, price):
 
         if self.position == 0:
             return 0, "no existing positions"

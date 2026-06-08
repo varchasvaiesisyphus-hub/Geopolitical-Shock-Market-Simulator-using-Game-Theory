@@ -37,7 +37,7 @@ class Institutional_Agent(Agent):
         )
         return np.clip(signal, -1.0, 1.0)
 
-    def compute_exit_signal(self, price, panic):
+    def compute_exit_signal(self, price):
 
         if self.position == 0:
             return 0, "no existing positions"

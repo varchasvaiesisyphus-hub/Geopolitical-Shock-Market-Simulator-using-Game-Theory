@@ -29,9 +29,9 @@ class Agent:
         
         return 0.0
 
-    def decide_order(self, price, signal):
+    def decide_order(self, price, signal, liquidity):
 
-        if abs(signal) <= self.signal_threshold:
+        if abs(signal) < self.signal_threshold:
             return 0.0
 
         order = (self.k * signal * self.cash) / price   #number of shares 
@@ -47,8 +47,8 @@ class Agent:
                 else:
                     order = self.cash / price
 
-            else:
-                order = 0
+            # else:
+            #     order = 0
 
     
         elif order < 0:
@@ -58,8 +58,17 @@ class Agent:
             else:
                 order = 0
 
-
-        return np.round(order, 0)
+        #caping order size based on the available liqwuidity
+        order_size = order * price
+        participation_rate = order_size/liquidity
+        if participation_rate < 0.1:
+            order = np.round(order, 0)
+        else:
+            max_capital_to_spend = participation_rate * liquidity
+            order = max_capital_to_spend/price
+            order = np.round(order, 0)
+            
+        return order
 
     def update_state(self, order, price):
 
