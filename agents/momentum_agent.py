@@ -93,7 +93,7 @@ class Momentum_Agent(Agent):
               (trend        * 0.50)   # smoothed rolling trend (primary signal)
             + (event        * 0.40)   # news amplifies the trend
             - (panic        * 0.30)   # panic = possible trend snap → reduce
-            - (volatility   * 0.40)   # noisy environment → reduce conviction
+            - ((volatility   * 0.40) if volatility>= 0.5 else 0)   # noisy environment → reduce conviction
             + (value_signal * 0.10)   # guard: don't short deeply distressed assets
         )
         return np.clip(signal, -1.0, 1.0)

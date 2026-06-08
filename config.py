@@ -33,7 +33,7 @@ POSITIVE_EVENT_PANIC_WEIGHTS = {
 # ---- PRICE MECHANICS ----
 LIQUIDITY_SENSITIVITY = 500   # (reserved for future use)
 MAX_LIQUIDITY_IMPACT  = 5     # (reserved for future use)
-PRICE_SENSITIVITY     = 0.5     # how strongly net demand moves price
+PRICE_SENSITIVITY     = 0.1     # how strongly net demand moves price
 
 # ---- VOLATILITY UPDATE (GARCH-inspired) ----
 VOLATILITY_CALCULATION_LAST_N_VALUES = 10  # window for future realized-vol upgrade
@@ -42,8 +42,8 @@ MIN_VOLATILITY  = 0.010   # FIX (new): floor so vol never decays to zero.
                            # Real markets have irreducible microstructure noise.
                            # Without this floor, quiet periods produce vol≈0,
                            # which makes the vol-normalized trend meaningless.
-BETA1 = 0.60  # volatility persistence (how "sticky" yesterday's vol is)
-BETA2 = 0.15  # demand-driven vol shock
+BETA1 = 0.92  # volatility persistence (how "sticky" yesterday's vol is)
+BETA2 = 0.25  # demand-driven vol shock
 BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
 
 # ----(EWMA) ----

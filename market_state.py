@@ -104,7 +104,7 @@ def update_volatility(volatility, event, liquidity, demand=0):
 
 
     
-    return volatility
+    return np.clip(volatility, -0.99, 0.99)
 
 
 def Compute_panic(event, volatility, trend):
