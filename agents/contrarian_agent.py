@@ -8,10 +8,13 @@ class ContrarianAgent(Agent):
 
     def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0):
         super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price=entry_price)
-        # avg_history: stores rolling average prices across timesteps.
-        # By comparing consecutive entries we measure "is the smoothed
-        # trend itself accelerating or decelerating?" — second-order momentum.
         self.entry_ewma_price = 0
+        # Parameterized weight variance: contrarian agents are value-focused with trend fading
+        self.trend_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
+        self.event_weight = np.clip(np.random.normal(0.30, 0.07), 0.15, 0.45)
+        self.panic_weight = np.clip(np.random.normal(0.40, 0.08), 0.25, 0.55)
+        self.value_weight = np.clip(np.random.normal(0.50, 0.10), 0.35, 0.70)
+        self.volatility_weight = np.clip(np.random.normal(0.20, 0.05), 0.10, 0.30)
 
     def update_state(self, order, price, ewma_price):
         super().update_state(order, price)
@@ -21,11 +24,11 @@ class ContrarianAgent(Agent):
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
-            - (0.10 * trend)                              # fade the trend
-            - (0.30 * event)                              # bad news = opportunity
-            + (0.40 * panic)                              # buy the panic
-            + (0.50 * value_signal)                       # PRIMARY value anchor
-            - ((np.sign(trend)) * 0.2 * volatility)    # small non-linear vol term
+            - (self.trend_weight * trend)                              # fade the trend
+            - (self.event_weight * event)                              # bad news = opportunity
+            + (self.panic_weight * panic)                              # buy the panic
+            + (self.value_weight * value_signal)                       # PRIMARY value anchor
+            - ((np.sign(trend)) * self.volatility_weight * volatility)    # non-linear vol term
         )
         return np.clip(signal, -1.0, 1.0)
     

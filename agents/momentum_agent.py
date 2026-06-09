@@ -28,12 +28,15 @@ class Momentum_Agent(Agent):
     def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None, lookback = 0):
         super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, lookback)
         # avg_history: stores rolling average prices across timesteps.
-        # By comparing consecutive entries we measure "is the smoothed
-        # trend itself accelerating or decelerating?" — second-order momentum.
         self.avg_history = []
         self.entry_t = 0
         self.current_high = 0
         self.lookback = lookback
+        # Parameterized weight variance: momentum agents are trend-focused but still respond to other signals
+        self.event_weight = np.clip(np.random.normal(0.40, 0.06), 0.25, 0.55)
+        self.panic_weight = np.clip(np.random.normal(0.30, 0.08), 0.15, 0.45)
+        self.volatility_weight = np.clip(np.random.normal(0.25, 0.06), 0.12, 0.40)
+        self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
 
     def decide_order(self, price, signal, liquidity):
 
@@ -90,11 +93,11 @@ class Momentum_Agent(Agent):
             return 0.0   # not enough history yet — be neutral
 
         signal = (
-              (trend        * 0.50)   # smoothed rolling trend (primary signal)
-            + (event        * 0.40)   # news amplifies the trend
-            - ((panic        * 0.30) if panic>= 0.25 else 0)   # panic = possible trend snap → reduce
-            - ((volatility   * 0.25) if volatility>= 0.18 else 0)   # noisy environment → reduce conviction
-            + (value_signal * 0.10)   # guard: don't short deeply distressed assets
+              (trend        * self.k)   # smoothed rolling trend (primary signal)
+            + (event        * self.event_weight)   # news amplifies the trend
+            - ((panic        * self.panic_weight) if panic>= 0.25 else 0)   # panic = possible trend snap
+            - ((volatility   * self.volatility_weight) if volatility>= 0.18 else 0)   # noisy environment
+            + (value_signal * self.value_weight)   # guard: don't short deeply distressed assets
         )
         return np.clip(signal, -1.0, 1.0)
 

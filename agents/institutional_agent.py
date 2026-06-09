@@ -27,13 +27,22 @@ from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE
 
 class Institutional_Agent(Agent):
 
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0):
+        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price)
+        # Parameterized weight variance: institutions are disciplined but still have different risk mandates
+        self.trend_weight = np.clip(np.random.normal(0.40, 0.05), 0.30, 0.50)
+        self.event_weight = np.clip(np.random.normal(0.40, 0.06), 0.28, 0.52)
+        self.volatility_weight = np.clip(np.random.normal(0.25, 0.05), 0.15, 0.35)
+        self.panic_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
+        self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
+
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
-              (0.40 * trend)         # trend-aware (not blind follower)
-            + (0.40 * event)         # news-driven via research
-            - (0.25 * volatility)    # vol-targeting risk mandate
-            - ((0.30 * panic) if panic >= 0.6 else 0)         # low emotional sensitivity
-            + (0.30 * value_signal)  # fundamental value anchor
+              (self.trend_weight * trend)         # trend-aware (not blind follower)
+            + (self.event_weight * event)         # news-driven via research
+            - (self.volatility_weight * volatility)    # vol-targeting risk mandate
+            - ((self.panic_weight * panic) if panic >= 0.6 else 0)         # low emotional sensitivity
+            + (self.value_weight * value_signal)  # fundamental value anchor
         )
         return np.clip(signal, -1.0, 1.0)
 
