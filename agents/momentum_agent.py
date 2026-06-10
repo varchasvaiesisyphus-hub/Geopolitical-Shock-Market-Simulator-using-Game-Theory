@@ -1,6 +1,7 @@
 from agents.base_agent import Agent
 import numpy as np
 from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE
+import random 
 # ============================================================
 # MOMENTUM AGENT
 # ============================================================
@@ -28,14 +29,18 @@ class Momentum_Agent(Agent):
     def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None, lookback = 0):
         super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, lookback)
         # avg_history: stores rolling average prices across timesteps.
-        # By comparing consecutive entries we measure "is the smoothed
-        # trend itself accelerating or decelerating?" — second-order momentum.
         self.avg_history = []
         self.entry_t = 0
         self.current_high = 0
         self.lookback = lookback
+        # Parameterized weight variance: momentum agents are trend-focused but still respond to other signals
+        self.event_weight = np.clip(np.random.normal(0.40, 0.06), 0.25, 0.55)
+        self.panic_weight = np.clip(np.random.normal(0.30, 0.08), 0.15, 0.45)
+        self.volatility_weight = np.clip(np.random.normal(0.25, 0.06), 0.12, 0.40)
+        self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
+        self.signal_delay = 0  
 
-    def decide_order(self, price, signal):
+    def decide_order(self, price, signal, liquidity):
 
         if abs(signal) <= self.signal_threshold:
             return 0.0
@@ -65,7 +70,16 @@ class Momentum_Agent(Agent):
                 order = 0
 
 
-        return np.round(order, 0)
+        order_size = order * price
+        participation_rate = order_size/liquidity
+        if participation_rate < 0.1:
+            order = np.round(order, 0)
+        else:
+            max_capital_to_spend = participation_rate * liquidity
+            order = max_capital_to_spend/price
+            order = np.round(order, 0)
+            
+        return order
 
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:
@@ -81,11 +95,11 @@ class Momentum_Agent(Agent):
             return 0.0   # not enough history yet — be neutral
 
         signal = (
-              (trend        * 0.50)   # smoothed rolling trend (primary signal)
-            + (event        * 0.40)   # news amplifies the trend
-            - (panic        * 0.30)   # panic = possible trend snap → reduce
-            - (volatility   * 0.40)   # noisy environment → reduce conviction
-            + (value_signal * 0.10)   # guard: don't short deeply distressed assets
+              (trend        * self.k)   # smoothed rolling trend (primary signal)
+            + (event        * self.event_weight)   # news amplifies the trend
+            - ((panic        * self.panic_weight) if panic>= 0.25 else 0)   # panic = possible trend snap
+            - ((volatility   * self.volatility_weight) if volatility>= 0.18 else 0)   # noisy environment
+            + (value_signal * self.value_weight)   # guard: don't short deeply distressed assets
         )
         return np.clip(signal, -1.0, 1.0)
 
@@ -110,7 +124,7 @@ class Momentum_Agent(Agent):
         trend = (current_avg - previous_avg) / previous_avg
         return float(np.clip(trend, -1.0, 1.0))
 
-    def compute_exit_signal(self, price, panic):
+    def compute_exit_signal(self, price):
 
         if self.position == 0:
             return 0, "no existing positions"

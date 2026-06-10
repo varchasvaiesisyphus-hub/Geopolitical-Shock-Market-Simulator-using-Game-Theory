@@ -80,3 +80,10 @@ VALUE
     ---> If the value_signal disappears exit or take profit at value 
 '''
 
+
+
+"""
+to add 
+1. informed vs uninformed agents + biased towards buying 
+2. aggresivenss should be a function of available capital. 
+"""

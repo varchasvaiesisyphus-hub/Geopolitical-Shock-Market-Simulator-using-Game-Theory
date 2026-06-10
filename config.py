@@ -33,7 +33,7 @@ POSITIVE_EVENT_PANIC_WEIGHTS = {
 # ---- PRICE MECHANICS ----
 LIQUIDITY_SENSITIVITY = 500   # (reserved for future use)
 MAX_LIQUIDITY_IMPACT  = 5     # (reserved for future use)
-PRICE_SENSITIVITY     = 5     # how strongly net demand moves price
+PRICE_SENSITIVITY     = 0.1     # how strongly net demand moves price
 
 # ---- VOLATILITY UPDATE (GARCH-inspired) ----
 VOLATILITY_CALCULATION_LAST_N_VALUES = 10  # window for future realized-vol upgrade
@@ -42,9 +42,9 @@ MIN_VOLATILITY  = 0.010   # FIX (new): floor so vol never decays to zero.
                            # Real markets have irreducible microstructure noise.
                            # Without this floor, quiet periods produce vol≈0,
                            # which makes the vol-normalized trend meaningless.
-BETA1 = 0.60  # volatility persistence (how "sticky" yesterday's vol is)
+BETA1 = 0.85  # volatility persistence (how "sticky" yesterday's vol is)
 BETA2 = 0.15  # demand-driven vol shock
-BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
+BETA3 = 0.10  # event-driven vol spike (only negative events — see market_state.py)
 
 # ----(EWMA) ----
 VALUE_EWMA_ALPHA = 0.025        #halflife = ln(2)/value
@@ -126,3 +126,11 @@ BASE_MOMENTUM_PROFIT_RATE = 0.28
     #VALUE INVESTOR
 BASE_VALUE_INVESTOR_LOSS_RATE = 0.20
 BASE_VALUE_INVESTOR_PROFIT_RATE = 0.40
+
+#AGENT PARTICIPATION RATE 
+# INSTITUTIONAL_PARTICIPATION = 0.05
+# VALUE_INVESTOR_PARTICIPATION =  0.07
+# MOMENTUM_PARTICIPATION = 0.15
+# CONTRARIAN_PARTICIPATION = 0.18
+# RETAIL_PARTICIPATION = 0.05
+AGENT_PARTICIPATION_RATE = 0.1
