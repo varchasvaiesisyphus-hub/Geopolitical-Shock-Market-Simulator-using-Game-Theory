@@ -1,7 +1,7 @@
 from agents.base_agent import Agent
 import numpy as np
 from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE
-
+import random 
 # ============================================================
 # INSTITUTIONAL AGENT
 # ============================================================
@@ -35,6 +35,7 @@ class Institutional_Agent(Agent):
         self.volatility_weight = np.clip(np.random.normal(0.25, 0.05), 0.15, 0.35)
         self.panic_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
+        self.signal_delay = 0
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (

@@ -1,7 +1,7 @@
 from agents.base_agent import Agent
 import numpy as np
 from config import BASE_RETAIL_LOSS_RATE, BASE_RETAIL_PROFIT_RATE
-
+import random 
 # ============================================================
 # RETAIL AGENT
 # ============================================================
@@ -30,6 +30,7 @@ class Retail_Agent(Agent):
         self.panic_weight = np.clip(np.random.normal(0.55, 0.10), 0.40, 0.75)
         self.volatility_weight = np.clip(np.random.normal(0.30, 0.07), 0.15, 0.45)
         self.value_weight = np.clip(np.random.normal(0.15, 0.05), 0.05, 0.25)
+        self.signal_delay = random.randint(2, 4)
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (

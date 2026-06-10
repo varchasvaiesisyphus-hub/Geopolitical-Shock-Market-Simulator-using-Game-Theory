@@ -1,6 +1,7 @@
 from agents.base_agent import Agent
 import numpy as np
 from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE
+import random 
 # ============================================================
 # MOMENTUM AGENT
 # ============================================================
@@ -37,6 +38,7 @@ class Momentum_Agent(Agent):
         self.panic_weight = np.clip(np.random.normal(0.30, 0.08), 0.15, 0.45)
         self.volatility_weight = np.clip(np.random.normal(0.25, 0.06), 0.12, 0.40)
         self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
+        self.signal_delay = 0  
 
     def decide_order(self, price, signal, liquidity):
 

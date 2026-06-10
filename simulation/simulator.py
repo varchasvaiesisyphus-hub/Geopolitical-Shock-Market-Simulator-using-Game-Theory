@@ -31,6 +31,8 @@ def run_market_simulation():
     momentum_exit_log = []
     value_investor_exit_log = []
 
+    market_state_for_agents = []
+
 
 
     # ============================================================
@@ -188,6 +190,16 @@ def run_market_simulation():
             
         })
 
+        # --- STORE MARKET STATE  FOR AGENT ---
+        market_state = {
+            'trend': trend,
+            'volatility': volatility, 
+            'event': event_state,
+            'panic': panic,
+            'value_signal': value_signal,
+        }
+        market_state_for_agents.append(market_state)
+
 
 
         # ---- STEP 5 & 6: Agents act and get Logged ----
@@ -245,23 +257,61 @@ def run_market_simulation():
             else:
                 # No exit triggered - compute signal and decide order normally
                 if isinstance(agent, momentum_agent.Momentum_Agent):
-                    signal = agent.compute_signal(volatility, event_state, panic, PRICE_HISTORY, value_signal)
+
+                    effective_t = max(0, t - agent.signal_delay)
+                    delayed_state = market_state_for_agents[effective_t]
+
+                    signal = agent.compute_signal(
+                        delayed_state['volatility'],
+                        delayed_state["event"], 
+                        delayed_state["panic"], PRICE_HISTORY[:effective_t], 
+                        delayed_state["value_signal"]
+                    )
+                    
                     order = agent.decide_order(price, signal, liquidity)
 
                 elif isinstance(agent, retail_agent.Retail_Agent):
-                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+
+                    effective_t = max(0, t - agent.signal_delay)
+                    delayed_state = market_state_for_agents[effective_t]
+
+                    signal = agent.compute_signal(
+                        delayed_state['trend'],
+                        delayed_state['volatility'],
+                        delayed_state['event'],
+                        delayed_state['panic'],
+                        delayed_state['value_signal']
+                    )
                     order = agent.decide_order(price, signal, liquidity)
 
                 elif isinstance(agent, contrarian_agent.ContrarianAgent):
-                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    signal = agent.compute_signal(
+                        delayed_state['trend'],
+                        delayed_state['volatility'],
+                        delayed_state['event'],
+                        delayed_state['panic'],
+                        delayed_state['value_signal']
+                    )
                     order = agent.decide_order(price, signal, liquidity)
 
                 elif isinstance(agent, institutional_agent.Institutional_Agent):
-                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    signal = agent.compute_signal(
+                        delayed_state['trend'],
+                        delayed_state['volatility'],
+                        delayed_state['event'],
+                        delayed_state['panic'],
+                        delayed_state['value_signal']
+                    )
                     order = agent.decide_order(price, signal, liquidity)
 
                 elif isinstance(agent, value_investor.value_investor_agent):
-                    signal = agent.compute_signal(trend, volatility, event_state, panic, value_signal)
+                    signal = agent.compute_signal(
+                        delayed_state['trend'],
+                        delayed_state['volatility'],
+                        delayed_state['event'],
+                        delayed_state['panic'],
+                        delayed_state['value_signal']
+                    )
                     order = agent.decide_order(price, signal, liquidity)
 
                 else:

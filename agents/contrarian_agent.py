@@ -1,5 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
+import random 
 
 
 
@@ -15,7 +16,7 @@ class ContrarianAgent(Agent):
         self.panic_weight = np.clip(np.random.normal(0.40, 0.08), 0.25, 0.55)
         self.value_weight = np.clip(np.random.normal(0.50, 0.10), 0.35, 0.70)
         self.volatility_weight = np.clip(np.random.normal(0.20, 0.05), 0.10, 0.30)
-
+        self.signal_delay = random.randint(1, 2)
     def update_state(self, order, price, ewma_price):
         super().update_state(order, price)
 
