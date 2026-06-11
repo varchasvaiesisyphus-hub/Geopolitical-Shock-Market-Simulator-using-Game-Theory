@@ -27,9 +27,9 @@ class ContrarianAgent(Agent):
         signal = (
             - (self.trend_weight * trend)                              # fade the trend
             - (self.event_weight * event)                              # bad news = opportunity
-            + (self.panic_weight * panic)                              # buy the panic
+            + ((self.panic_weight * panic) if panic > 0.1 else 0)                              # buy the panic
             + (self.value_weight * value_signal)                       # PRIMARY value anchor
-            - ((np.sign(trend)) * self.volatility_weight * volatility)    # non-linear vol term
+            - (((np.sign(trend)) * self.volatility_weight * volatility) if volatility > 0.15 else 0)    # non-linear vol term
         )
         return np.clip(signal, -1.0, 1.0)
     

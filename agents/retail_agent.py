@@ -36,7 +36,7 @@ class Retail_Agent(Agent):
         signal = (
               (self.trend_weight * trend)         # weak trend-following
             + (self.event_weight * event)         # news reactive
-            - ((self.panic_weight * panic) if panic > 0.03 else 0)         # DOMINANT: panic-driven selling
+            - ((self.panic_weight * panic) if panic > 0.1 else 0)         # DOMINANT: panic-driven selling
             - ((self.volatility_weight * volatility) if volatility> 0.1 else 0)    # vol-averse
             + (self.value_weight * value_signal)  # weak value anchor
         )
