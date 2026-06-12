@@ -15,40 +15,101 @@ import random
 # ============================================================
 
 def compute_demand_impact(demand, liquidity):
-    saturated_demand = demand/(1 + np.abs(demand))
-    liquidity_impact = L_0/liquidity
-    demand_impact =  saturated_demand * liquidity_impact
+    """
+    Returns a price RETURN (fraction), not a dollar amount.
+    
+    Kyle's Lambda model: price impact = lambda * signed_volume
+    Lambda (price impact coefficient) scales inversely with liquidity.
+    
+    Saturation via tanh: realistic for large orders (block trades)
+    where market impact is sub-linear — doubling order size doesn't
+    double impact because you sweep through multiple price levels.
+    
+    demand is normalized by liquidity before saturation so the 
+    function is scale-invariant: 100 shares in a 100-share market 
+    = 1000 shares in a 1000-share market.
+    """
+    if liquidity <= 0:
+        liquidity = 1.0
 
-    return demand_impact
+    # Normalize demand relative to available liquidity
+    # This makes impact scale-invariant
+    normalized_demand = demand / liquidity          # dimensionless: [-∞, +∞]
+
+    # Sub-linear saturation (tanh): large orders have diminishing impact
+    # tanh(1) ≈ 0.76, tanh(2) ≈ 0.96 — aggressive but not explosive
+    saturated = np.tanh(3.0 * normalized_demand)    # ∈ (-1, +1)
+
+    # Liquidity penalty: thin markets amplify impact, but capped
+    # sqrt dampens the explosion during crisis — realistic because
+    # even in illiquid markets, circuit breakers and market makers
+    # partially stabilize impact
+    liquidity_ratio = L_0 / max(liquidity, 0.01 * L_0)   # floor at 1% of baseline
+    liquidity_multiplier = np.sqrt(liquidity_ratio)        # dampened, not linear
+
+    return float(saturated * liquidity_multiplier)         # still ∈ (-∞, +∞) but bounded in practice
+
 
 def Update_price(price, demand, liquidity, volatility):
-    demand_impact = compute_demand_impact(demand, liquidity)
-
-    # Microstructure noise: bid-ask bounce, rounding, order timing.
-    # Scales with volatility because high-vol regimes have wider spreads.
-    BASE_NOISE = random.uniform(-0.002, 0.002) * price
-    noise = BASE_NOISE + (price * (NOISE_ALPHA * volatility * random.choice([-1, 1])))
-
+    """
+    Price update as a RETURN, then applied multiplicatively.
     
-    price_change = (PRICE_SENSITIVITY *demand_impact) + noise
-    price += price_change
+    Multiplicative (not additive) update: dP/P = impact + noise
+    This is the standard log-return model. It ensures:
+      - Price impact is proportional to price level (realistic)
+      - Price cannot go negative (returns can be at most -100%)
+      - Volatility compounds correctly over time
+    
+    Noise model: two components
+      1. Microstructure noise — bid-ask bounce, tick rounding (always present)
+      2. Vol-scaled noise — widens with realized volatility (het eroskedastic)
+    Both are returns, not dollar amounts.
+    """
 
+    # --- Impact return ---
+    demand_impact = compute_demand_impact(demand, liquidity)
+    impact_return = PRICE_SENSITIVITY * demand_impact      # scale by sensitivity param
 
-    return max(0.01, price)
+    # --- Noise return (two components) ---
+    # Microstructure: small, symmetric, independent of vol
+    microstructure = random.gauss(0, 0.0008)               # ~0.08% std, Gaussian not uniform
+
+    # Vol-scaled noise: larger in high-vol regimes (ARCH effect)
+    vol_noise = random.gauss(0, NOISE_ALPHA * volatility)  # scales with current vol
+
+    total_noise = microstructure + vol_noise
+
+    # --- Multiplicative price update ---
+    # price * (1 + r) where r = impact + noise
+    # Equivalent to: ln(P_t) = ln(P_{t-1}) + r  (geometric random walk)
+    total_return = impact_return + total_noise
+
+    # Cap single-step return at ±20% — circuit breaker
+    # Real markets: NYSE halts at 7%, 13%, 20% intraday moves
+    total_return = np.clip(total_return, -0.20, 0.20)
+
+    new_price = price * (1 + total_return)
+
+    return max(0.01, new_price)
 
 def update_volatility(volatility, event, liquidity, demand=0):
-
+    noise = np.random.normal(0, 0.02)
     demand_impact = compute_demand_impact(demand, liquidity)
 
     volatility = (BETA1 * volatility                     # persistence
                 + (1 - BETA1) * BASE_VOLATILITY          # mean reversion ← THE FIX
                 + BETA2 * abs(demand_impact)             # demand shock
-                + BETA3 * max(0, -event))                # event shock
-
+                + BETA3 * max(0, -event)                 # event shock
+                + noise)                                 # noise
+                
+    """
+    to add in future :- 
+        high volatility  → more sensitive to new shocks                    
+    """
 
 
     
-    return volatility
+    return np.clip(volatility, 0.01, 0.99)
 
 
 def Compute_panic(event, volatility, trend):
@@ -72,7 +133,7 @@ def Compute_panic(event, volatility, trend):
 
 
 
-def update_liquidity(panic, volatility, previous_liquidity=None):
+def update_liquidity(panic, volatility, previous_liquidity=None, event = None):
     if previous_liquidity is None:
         previous_liquidity = L_0
     # --------------------------------------------------------
@@ -85,6 +146,18 @@ def update_liquidity(panic, volatility, previous_liquidity=None):
     # When panic subsides, liquidity gradually recovers — not instantly.
     # This models the reality that market makers return cautiously after
     # stress events.
+
+    if event == "crisis":
+        GAMMA = random.randint(300, 500)
+    elif event == "mild_postive":
+        GAMMA == random.randint(2,8)
+    elif event == "strong_positive":
+        GAMMA = random.randint(-5, 5)
+    elif event == "no_event":
+         GAMMA = random.randint(5,15)
+    elif event == "mild_negative":
+        GAMMA == random.randint(40, 120)
+
     liquidity = previous_liquidity - GAMMA * (panic+volatility) + DELTA * (L_0 - previous_liquidity) 
     return max(1.0, liquidity)
 
@@ -94,7 +167,7 @@ def Compute_trend(price, t ,k = 15, prev_EMA = 0, n = 10):
     if prev_EMA == 0:
         return 0.0
         
-    current_EMA = (price * (2/n+1)) + (prev_EMA *(1 - (2/n+1)))
+    current_EMA = (price * (2/(n+1))) + (prev_EMA *(1 - (2/(n+1))))
 
     deviation = (price - current_EMA)/ current_EMA
 

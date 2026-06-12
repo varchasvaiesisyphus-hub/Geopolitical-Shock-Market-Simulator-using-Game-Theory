@@ -8,7 +8,7 @@
 # ============================================================
 
 # ---- SIMULATION ----
-T = 100   # number of timesteps (think of each as one trading "day")
+T = 200   # number of timesteps (think of each as one trading "day")
 
 # ---- TREND COMPUTATION ----
 TREND_CLIP        = 0.05   # (currently unused — kept for future use)
@@ -33,7 +33,7 @@ POSITIVE_EVENT_PANIC_WEIGHTS = {
 # ---- PRICE MECHANICS ----
 LIQUIDITY_SENSITIVITY = 500   # (reserved for future use)
 MAX_LIQUIDITY_IMPACT  = 5     # (reserved for future use)
-PRICE_SENSITIVITY     = 5     # how strongly net demand moves price
+PRICE_SENSITIVITY     = 0.1     # how strongly net demand moves price
 
 # ---- VOLATILITY UPDATE (GARCH-inspired) ----
 VOLATILITY_CALCULATION_LAST_N_VALUES = 10  # window for future realized-vol upgrade
@@ -42,9 +42,9 @@ MIN_VOLATILITY  = 0.010   # FIX (new): floor so vol never decays to zero.
                            # Real markets have irreducible microstructure noise.
                            # Without this floor, quiet periods produce vol≈0,
                            # which makes the vol-normalized trend meaningless.
-BETA1 = 0.60  # volatility persistence (how "sticky" yesterday's vol is)
+BETA1 = 0.85  # volatility persistence (how "sticky" yesterday's vol is)
 BETA2 = 0.15  # demand-driven vol shock
-BETA3 = 0.05  # event-driven vol spike (only negative events — see market_state.py)
+BETA3 = 0.10  # event-driven vol spike (only negative events — see market_state.py)
 
 # ----(EWMA) ----
 VALUE_EWMA_ALPHA = 0.025        #halflife = ln(2)/value
@@ -52,7 +52,7 @@ TREND_EWMA_ALPHA = 0.18
 
 # ---- LIQUIDITY ----
 L_0    = 10000   # baseline liquidity (shares available in the order book)
-GAMMA  = 500     # panic-driven liquidity drain rate
+# GAMMA  = 500     # panic-driven liquidity drain rate
 DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 
 # ---- EVENTS ----
@@ -60,8 +60,8 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
     #t : "event"
-    20 : "strong_positive",
-    60 : "crisis",
+    60 : "strong_positive",
+    160 : "crisis",
 }
 
 # Numeric initial impact of each event type.
@@ -98,3 +98,39 @@ INITIAL_PRICE = 100.0
 
 # ---- EVENT HISTORY (reserved for future use) ----
 EVENT_HISTORY = {}
+
+
+#POSITION MAKING
+
+# Exit thresholds for each agent type
+# Determines stop-loss (%) and take-profit (%) levels based on risk_aversion
+# Higher risk_aversion = tighter stops, smaller profits (conservative)
+# Lower risk_aversion = wider stops, larger profits (aggressive)
+
+    #RETAIL
+BASE_RETAIL_LOSS_RATE = 0.1
+BASE_RETAIL_PROFIT_RATE = 0.3
+
+    #CONTRARIAN
+BASE_CONTRARIAN_LOSS_RATE = 0.15
+BASE_CONTRARIAN_PROFIT_RATE = 0.25
+
+    #INSTITUTIONAL
+BASE_INSTITUTIONAL_LOSS_RATE = 0.08
+BASE_INSTITUTIONAL_PROFIT_RATE = 0.20
+
+    #MOMENTUM
+BASE_MOMENTUM_LOSS_RATE = 0.12
+BASE_MOMENTUM_PROFIT_RATE = 0.28
+
+    #VALUE INVESTOR
+BASE_VALUE_INVESTOR_LOSS_RATE = 0.20
+BASE_VALUE_INVESTOR_PROFIT_RATE = 0.40
+
+#AGENT PARTICIPATION RATE 
+# INSTITUTIONAL_PARTICIPATION = 0.05
+# VALUE_INVESTOR_PARTICIPATION =  0.07
+# MOMENTUM_PARTICIPATION = 0.15
+# CONTRARIAN_PARTICIPATION = 0.18
+# RETAIL_PARTICIPATION = 0.05
+AGENT_PARTICIPATION_RATE = 0.1
