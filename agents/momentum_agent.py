@@ -106,8 +106,7 @@ class Momentum_Agent(Agent):
         
         new_position = old_position + order
 
-        old_entry_t = self.entry_t
-        new_entry_t = old_entry_t + t
+
 
         #case 1: fresh position 
         if old_position == 0:
