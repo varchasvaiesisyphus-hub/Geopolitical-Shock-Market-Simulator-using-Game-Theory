@@ -61,12 +61,12 @@ class Agent:
         #caping order size based on the available liqwuidity
         order_size = order * price
         participation_rate = order_size/liquidity
-        if participation_rate < 0.1:
+        if participation_rate < 0.05:
             order = np.round(order, 0)
         else:
-            max_capital_to_spend = participation_rate * liquidity
-            order = max_capital_to_spend/price
-            order = np.round(order, 0)
+            max_order_size = 0.05 * liquidity
+            order = max_order_size/price
+
             
         return order
 
