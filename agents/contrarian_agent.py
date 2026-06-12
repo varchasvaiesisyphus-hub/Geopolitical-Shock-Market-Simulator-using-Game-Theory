@@ -17,6 +17,7 @@ class ContrarianAgent(Agent):
         self.value_weight = np.clip(np.random.normal(0.50, 0.10), 0.35, 0.70)
         self.volatility_weight = np.clip(np.random.normal(0.20, 0.05), 0.10, 0.30)
         self.signal_delay = random.randint(1, 2)
+        self.reversion_requirement = np.clip(np.random.normal(0.70, 0.1), 0.5, 0.9)
     def update_state(self, order, price, ewma_price):
         super().update_state(order, price)
 
@@ -43,13 +44,16 @@ class ContrarianAgent(Agent):
         if self.position> 0:
             stoploss = self.entry_price - (self.entry_price* self.risk_aversion)
 
-            if price >= ewma: #profit 
+
+            entry_gap = self.entry_ewma_price - self.entry_price
+            reversion_fraction = self.reversion_requirement
+            target_price = self.entry_price + (entry_gap * reversion_fraction)
+
+            if price >= target_price and price>= ewma:
                 return -self.position, "take-profit"
             
             elif price <= stoploss:
-                return -self.position, "stop-loss"
+                return -self.position , "stop-loss"
             
             else:
-                return 0 , "hold"
-
-        
+                return 0, "Hold"

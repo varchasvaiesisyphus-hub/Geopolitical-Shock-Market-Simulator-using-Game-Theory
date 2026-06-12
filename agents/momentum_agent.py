@@ -40,46 +40,7 @@ class Momentum_Agent(Agent):
         self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
         self.signal_delay = 0  
 
-    def decide_order(self, price, signal, liquidity):
 
-        if abs(signal) <= self.signal_threshold:
-            return 0.0
-
-        order = (self.k * signal * self.cash) / price   #number of shares 
-
-        if order > 0:
-            max_holding = (self.initial_cash/ price) * self.max_position_fraction
-            
-            if self.position < max_holding:
-            
-                remaining_position = max_holding - self.position
-                if self.cash > (remaining_position*price):
-                    order = min([order, remaining_position])
-                else:
-                    order = self.cash / price
-
-            else:
-                order = 0
-
-    
-        elif order < 0:
-            if self.position > 0:
-                order = -np.min([np.abs(order), self.position])
-
-            else:
-                order = 0
-
-
-        order_size = order * price
-        participation_rate = order_size/liquidity
-        if participation_rate < 0.1:
-            order = np.round(order, 0)
-        else:
-            max_capital_to_spend = participation_rate * liquidity
-            order = max_capital_to_spend/price
-            order = np.round(order, 0)
-            
-        return order
 
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:
@@ -155,6 +116,7 @@ class Momentum_Agent(Agent):
         #case 2: complete exit
         elif new_position == 0:
             self.entry_t = 0
+            self.current_high = 0
 
 
         #case 3: increase/ decrease in position 
