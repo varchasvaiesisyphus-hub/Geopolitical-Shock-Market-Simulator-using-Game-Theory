@@ -67,7 +67,7 @@ class Agent:
         if order_size > max_order_size:
             order = np.sign(order) * (max_order_size / price)
             
-        return order
+        return np.round(order, 0)
 
     def update_state(self, order, price):
 
