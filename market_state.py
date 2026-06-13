@@ -149,7 +149,7 @@ def update_liquidity(panic, volatility, previous_liquidity=None, event = None):
 
     if event == "crisis":
         GAMMA = random.randint(300, 500)
-    elif event == "mild_postive":
+    elif event == "mild_positive":
         GAMMA = random.randint(2,8)
     elif event == "strong_positive":
         GAMMA = random.randint(-5, 5)

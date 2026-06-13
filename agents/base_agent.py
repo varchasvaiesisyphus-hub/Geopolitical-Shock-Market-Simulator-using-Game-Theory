@@ -45,7 +45,7 @@ class Agent:
                 if self.cash > (remaining_position*price):
                     order = min([order, remaining_position])
                 else:
-                    order = self.cash / price
+                    order = self.cash / price   #note that cahs reserves would be ADDED TO THIS STEP
 
             else:
                 order = 0
@@ -74,8 +74,12 @@ class Agent:
         old_position = self.position
         new_position = old_position + order
 
-        # CASE 1: opening new position
-        if old_position == 0:
+
+        if order == 0:
+            return
+        
+        # CASE 1: opening new position       
+        if old_position == 0 and new_position > 0:
             self.entry_price = price
 
         # CASE 2: increasing same-side position
@@ -105,8 +109,8 @@ class Agent:
         self.cash -= order * price
 
     def get_state(self):
-        return {"name": self.name, "position": round(self.position, 4),
-                "cash": round(self.cash, 2), "avg_entry_price" : round(sum(self.entry_price)/len(self.entry_price), 2)}
+        return {"name": self.name, "position": round(self.position, 4) if self.position >0 else None,
+                "cash": round(self.cash, 2), "avg_entry_price": round(self.entry_price, 2)}
     
 
     def get_pnl(self,price):
@@ -115,12 +119,4 @@ class Agent:
         return pnl
     
 
-"""
-i need to make avg_entry_price a state value
-for that i need to have a list of i entry prices for i positions
-to calculate entry price i will make an avg of entry price list the llist is dynamic 
-for each additional position we add an entry price and for each closed postion we remove the oldest entry price for the list 
-entry price list should retail state --> automatically entry price retails
-and so should entry price
 
-"""

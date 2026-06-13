@@ -13,6 +13,7 @@ AGENT_EXIT_LOG_DIR = DATA_DIR / "agent_exit_log"
 AGENT_EXIT_LOG_DIR.mkdir(exist_ok=True)
 
 def run_market_simulation():
+    PRICE_HISTORY.clear()
     # ---- INITIALIZE MARKET STATE ----
     price      = INITIAL_PRICE
     ewma_price = float(INITIAL_PRICE)
@@ -151,7 +152,7 @@ def run_market_simulation():
     # ============================================================
 
     for t in range(T + 1):
-        PRICE_HISTORY.clear()
+
 
         # ---- STEP 1: Record current price ----
         PRICE_HISTORY.append(price)
@@ -265,7 +266,8 @@ def run_market_simulation():
                     signal = agent.compute_signal(
                         delayed_state['volatility'],
                         delayed_state["event"], 
-                        delayed_state["panic"], PRICE_HISTORY[:effective_t], 
+                        delayed_state["panic"], 
+                        PRICE_HISTORY[:effective_t], 
                         delayed_state["value_signal"]
                     )
                     

@@ -63,10 +63,10 @@ class Institutional_Agent(Agent):
         if price > stoploss and price < takeprofit:
              return 0, "hold"
 
-        elif price < stoploss:
+        elif price <= stoploss:
             return -self.position, "stop-loss"
 
-        elif price > takeprofit:
+        elif price >= takeprofit:
              return -self.position, "take-profit"
         
 # obtain portfolio pnl = capital - unrealised loss/profit 
