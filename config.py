@@ -47,7 +47,7 @@ BETA2 = 0.15  # demand-driven vol shock
 BETA3 = 0.10  # event-driven vol spike (only negative events — see market_state.py)
 
 # ----(EWMA) ----
-VALUE_EWMA_ALPHA = 0.025        #halflife = ln(2)/value
+VALUE_EWMA_ALPHA = 0.05        #halflife = ln(2)/value
 TREND_EWMA_ALPHA = 0.18
 
 # ---- LIQUIDITY ----

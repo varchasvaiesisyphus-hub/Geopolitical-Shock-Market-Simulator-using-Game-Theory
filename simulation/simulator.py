@@ -151,6 +151,7 @@ def run_market_simulation():
     # ============================================================
 
     for t in range(T + 1):
+        PRICE_HISTORY.clear()
 
         # ---- STEP 1: Record current price ----
         PRICE_HISTORY.append(price)

@@ -91,9 +91,11 @@ class Momentum_Agent(Agent):
             return 0, "no existing positions"
 
         stoploss = self.current_high - (self.current_high*(0.1- self.risk_aversion))  #higher the risk aversion lower the trailing percentage (5-10%)
-
+        take_profit = None
         if price > stoploss:
              return 0, "hold"
+        # elif price >= take_profit:
+        #     return -self.position, "take-profit"
 
         elif price <= stoploss:
             return -self.position, "stop-loss"
