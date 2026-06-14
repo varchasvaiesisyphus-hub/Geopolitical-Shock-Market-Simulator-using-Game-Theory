@@ -94,11 +94,13 @@ class Momentum_Agent(Agent):
         take_profit = None
         if price > stoploss:
              return 0, "hold"
-        # elif price >= take_profit:
-        #     return -self.position, "take-profit"
 
         elif price <= stoploss:
-            return -self.position, "stop-loss"
+            if price> self.entry_price:
+                return -self.position, "take-profit"
+            
+            elif price <= stoploss:
+                return -self.position, "stop-loss"
 
 
     def update_state(self, order, price, t):

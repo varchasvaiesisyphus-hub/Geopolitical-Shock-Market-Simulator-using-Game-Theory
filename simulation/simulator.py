@@ -244,6 +244,10 @@ def run_market_simulation():
                     "exit_price": price,
                     "position": agent.position,
                     "realised_PnL": (price - agent.entry_price) * agent.position,
+                   "realised_PnL_pct": (
+                        f"{round(((price - agent.entry_price) / agent.entry_price) * 100, 2)}%"
+                        if agent.entry_price != 0 else "N/A"
+                    )
                 }
 
                 if isinstance(agent, retail_agent.Retail_Agent):
