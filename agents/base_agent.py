@@ -58,14 +58,14 @@ class Agent:
             else:
                 order = 0
 
-        #caping order size based on the available liqwuidity
-        MAX_PARTICIPATION = 0.1
+        # #caping order size based on the available liqwuidity
+        # MAX_PARTICIPATION = 0.1
 
-        max_order_size = MAX_PARTICIPATION * liquidity
-        order_size = abs(order * price)
+        # max_order_size = MAX_PARTICIPATION * liquidity
+        # order_size = abs(order * price)
 
-        if order_size > max_order_size:
-            order = np.sign(order) * (max_order_size / price)
+        # if order_size > max_order_size:
+        #     order = np.sign(order) * (max_order_size / price)
             
         return np.round(order, 0)
 

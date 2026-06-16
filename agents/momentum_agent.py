@@ -38,11 +38,11 @@ class Momentum_Agent(Agent):
 
         self.lookback = lookback
         # Parameterized weight variance: momentum agents are trend-focused but still respond to other signals
-        self.event_weight = np.clip(np.random.normal(0.40, 0.06), 0.25, 0.55)
+        self.event_weight = np.clip(np.random.normal(0.10, 0.02), 0.25, 0.55)
         self.panic_weight = np.clip(np.random.normal(0.30, 0.08), 0.15, 0.45)
         self.volatility_weight = np.clip(np.random.normal(0.25, 0.06), 0.12, 0.40)
         self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
-        self.signal_delay = 0  
+        self.signal_delay = 1  
 
         self.last_entry_t = -999   # timestep of last entry
         self.entry_cooldown = random.randint(5, 15)  # steps to wait before re-entering
