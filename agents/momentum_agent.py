@@ -26,8 +26,8 @@ import random
 
 class Momentum_Agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None, lookback = 0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, lookback)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = 0,  lookback = 0):
+        super().__init__(cash = cash, k = k, signal_threshold = signal_threshold, risk_aversion= risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price = 0)
         # avg_history: stores rolling average prices across timesteps.
         self.avg_history = []
         self.trend_history = []
@@ -38,10 +38,11 @@ class Momentum_Agent(Agent):
 
         self.lookback = lookback
         # Parameterized weight variance: momentum agents are trend-focused but still respond to other signals
-        self.event_weight = np.clip(np.random.normal(0.10, 0.02), 0.25, 0.55)
+        self.event_weight = np.clip(np.random.normal(0.15, 0.04), 0.07, 0.35)
         self.panic_weight = np.clip(np.random.normal(0.30, 0.08), 0.15, 0.45)
         self.volatility_weight = np.clip(np.random.normal(0.25, 0.06), 0.12, 0.40)
         self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
+        self.trend_weight = np.clip(np.random.normal(0.45, 0.04), 0.35, 0.55)
         self.signal_delay = 1  
 
         self.last_entry_t = -999   # timestep of last entry
@@ -63,7 +64,7 @@ class Momentum_Agent(Agent):
             return 0.0   # not enough history yet — be neutral
 
         signal = (
-              (trend        * self.k)   # smoothed rolling trend (primary signal)
+              (trend        * self.trend_weight)   # smoothed rolling trend (primary signal)
             + (event        * self.event_weight)   # news amplifies the trend
             - ((panic        * self.panic_weight) if panic>= 0.25 else 0)   # panic = possible trend snap
             - ((volatility   * self.volatility_weight) if volatility>= 0.18 else 0)   # noisy environment
