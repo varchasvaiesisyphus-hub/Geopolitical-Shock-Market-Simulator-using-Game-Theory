@@ -5,6 +5,13 @@ from events.event import Compute_event_state
 import random
 import pandas as pd
 from pathlib import Path
+from reset import reset_simulation
+import time
+
+#RESET PREVIOUS SIMULATION DATA
+reset_simulation()
+time.sleep(0.5)  # Ensure the filesystem has time to process the deletion and recreation of the data directory
+print("Data directory reset. Starting new simulation...")
 
 # Set up the data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
