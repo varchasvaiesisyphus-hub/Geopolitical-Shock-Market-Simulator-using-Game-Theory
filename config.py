@@ -60,8 +60,8 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
     #t : "event"
-    60 : "strong_positive",
-    160 : "crisis",
+    # 60 : "strong_positive",
+    # 160 : "crisis",
 }
 
 # Numeric initial impact of each event type.

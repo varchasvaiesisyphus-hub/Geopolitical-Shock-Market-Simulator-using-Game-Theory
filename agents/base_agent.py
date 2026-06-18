@@ -31,8 +31,8 @@ class Agent:
 
     def decide_order(self, price, signal, liquidity):
 
-        if abs(signal) < self.signal_threshold:
-            return 0.0
+        # if abs(signal) < self.signal_threshold:0
+        #     return 0.0
 
         order = (self.k * signal * self.cash) / price   #number of shares 
 

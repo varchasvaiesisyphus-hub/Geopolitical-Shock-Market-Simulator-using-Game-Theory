@@ -9,3 +9,5 @@ def reset_simulation():
     if os.path.exists('data'):
         shutil.rmtree('data')
     os.makedirs('data', exist_ok=True)
+
+reset_simulation()

@@ -108,7 +108,7 @@ def run_market_simulation():
             name          = f"momentum_{m}",
             max_position_fraction = 0.60,
             signal_threshold = random.uniform(0.05, 0.09),
-            lookback = random.choice([3, 5, 8, 10, 15, 20, 30, 50])  # wider spread
+            lookback = random.choice([3, 5, 8, 10, 15, 20, 25])  # wider spread
         )
 
         momentum_agents.append(d)

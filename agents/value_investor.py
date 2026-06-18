@@ -48,10 +48,10 @@ class value_investor_agent(Agent):
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
               (self.value_weight * value_signal)  # DOMINANT: buy cheap, sell expensive
-            - ((self.panic_weight * panic) if panic >= 0.25 else 0)         # cautious: real crises can impair fundamentals
+            - (self.panic_weight * panic)         # cautious: real crises can impair fundamentals
             + (self.trend_weight * trend)         # weak: don't fight very strong momentum
             + (self.event_weight * event)         # minimal news sensitivity
-            - ((self.volatility_weight * volatility) if volatility >= 0.15 else 0)    # minimal vol sensitivity
+            - (self.volatility_weight * volatility)    # minimal vol sensitivity
         )
         return np.clip(signal, -1.0, 1.0)
 
