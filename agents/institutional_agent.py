@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE
+from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE, PANIC_FLOOR, BASE_VOLATILITY
 import random 
 # ============================================================
 # INSTITUTIONAL AGENT
@@ -31,7 +31,7 @@ class Institutional_Agent(Agent):
         super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price)
         # Parameterized weight variance: institutions are disciplined but still have different risk mandates
         self.trend_weight = np.clip(np.random.normal(0.40, 0.05), 0.30, 0.50)
-        self.event_weight = np.clip(np.random.normal(0.40, 0.06), 0.28, 0.52)
+        self.event_weight = np.clip(np.random.normal(0.12, 0.03), 0.28, 0.52)
         self.volatility_weight = np.clip(np.random.normal(0.25, 0.05), 0.15, 0.35)
         self.panic_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
@@ -41,8 +41,8 @@ class Institutional_Agent(Agent):
         signal = (
               (self.trend_weight * trend)         # trend-aware (not blind follower)
             + (self.event_weight * event)         # news-driven via research
-            - (self.volatility_weight * volatility)    # vol-targeting risk mandate
-            - ((self.panic_weight * panic) if panic >= 0.3 else 0)         # low emotional sensitivity
+            - (self.volatility_weight * (volatility -  BASE_VOLATILITY))    # vol-targeting risk mandate
+            - (self.panic_weight * (panic - PANIC_FLOOR))         # low emotional sensitivity
             + (self.value_weight * value_signal)  # fundamental value anchor
         )
         return np.clip(signal, -1.0, 1.0)
@@ -63,10 +63,10 @@ class Institutional_Agent(Agent):
         if price > stoploss and price < takeprofit:
              return 0, "hold"
 
-        elif price < stoploss:
+        elif price <= stoploss:
             return -self.position, "stop-loss"
 
-        elif price > takeprofit:
+        elif price >= takeprofit:
              return -self.position, "take-profit"
         
 # obtain portfolio pnl = capital - unrealised loss/profit 

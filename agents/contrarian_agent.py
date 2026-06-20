@@ -1,7 +1,7 @@
 from agents.base_agent import Agent
 import numpy as np
 import random 
-
+from config import BASE_VOLATILITY, PANIC_FLOOR
 
 
 
@@ -15,8 +15,9 @@ class ContrarianAgent(Agent):
         self.event_weight = np.clip(np.random.normal(0.30, 0.07), 0.15, 0.45)
         self.panic_weight = np.clip(np.random.normal(0.40, 0.08), 0.25, 0.55)
         self.value_weight = np.clip(np.random.normal(0.50, 0.10), 0.35, 0.70)
-        self.volatility_weight = np.clip(np.random.normal(0.20, 0.05), 0.10, 0.30)
+        self.volatility_weight = np.clip(np.random.normal(0.12, 0.05), 0.10, 0.30)
         self.signal_delay = random.randint(1, 2)
+        self.reversion_requirement = np.clip(np.random.normal(0.70, 0.1), 0.5, 0.9)
     def update_state(self, order, price, ewma_price):
         super().update_state(order, price)
 
@@ -27,9 +28,9 @@ class ContrarianAgent(Agent):
         signal = (
             - (self.trend_weight * trend)                              # fade the trend
             - (self.event_weight * event)                              # bad news = opportunity
-            + ((self.panic_weight * panic) if panic > 0.05 else 0)                             # buy the panic
+            + (self.panic_weight * (panic - PANIC_FLOOR))                             # buy the panic
             + (self.value_weight * value_signal)                       # PRIMARY value anchor
-            - (((np.sign(trend)) * self.volatility_weight * volatility) if volatility> 0.08 else 0)    # non-linear vol term
+            - ((np.sign(trend)) * self.volatility_weight * (volatility -  BASE_VOLATILITY))   # non-linear vol term
         )
         return np.clip(signal, -1.0, 1.0)
     
@@ -43,13 +44,16 @@ class ContrarianAgent(Agent):
         if self.position> 0:
             stoploss = self.entry_price - (self.entry_price* self.risk_aversion)
 
-            if price >= ewma: #profit 
+
+            entry_gap = self.entry_ewma_price - self.entry_price
+            reversion_fraction = self.reversion_requirement
+            target_price = self.entry_price + (entry_gap * reversion_fraction)
+
+            if price >= target_price and price>= ewma:
                 return -self.position, "take-profit"
             
             elif price <= stoploss:
-                return -self.position, "stop-loss"
+                return -self.position , "stop-loss"
             
             else:
-                return 0 , "hold"
-
-        
+                return 0, "Hold"

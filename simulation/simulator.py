@@ -5,14 +5,22 @@ from events.event import Compute_event_state
 import random
 import pandas as pd
 from pathlib import Path
+from reset import reset_simulation
+import time
+
+#RESET PREVIOUS SIMULATION DATA
+reset_simulation()
+time.sleep(0.5)  # Ensure the filesystem has time to process the deletion and recreation of the data directory
+print("Data directory reset. Starting new simulation...")
 
 # Set up the data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 AGENT_EXIT_LOG_DIR = DATA_DIR / "agent_exit_log"
 AGENT_EXIT_LOG_DIR.mkdir(exist_ok=True)
-
+PRICE_HISTORY.clear()
 def run_market_simulation():
+
     # ---- INITIALIZE MARKET STATE ----
     price      = INITIAL_PRICE
     ewma_price = float(INITIAL_PRICE)
@@ -96,11 +104,11 @@ def run_market_simulation():
         d = momentum_agent.Momentum_Agent(
             cash          = random.randint(40_000, 60_000),
             k             = random.uniform(0.35, 0.45),
-            risk_aversion = random.uniform(0.00, 0.05),
+            risk_aversion = random.uniform(0.1, 0.9),
             name          = f"momentum_{m}",
             max_position_fraction = 0.60,
             signal_threshold = random.uniform(0.05, 0.09),
-            lookback = random.choice([5,10,20,50])
+            lookback = random.choice([3, 5, 8, 10, 15, 20, 25])  # wider spread
         )
 
         momentum_agents.append(d)
@@ -151,6 +159,7 @@ def run_market_simulation():
     # ============================================================
 
     for t in range(T + 1):
+
 
         # ---- STEP 1: Record current price ----
         PRICE_HISTORY.append(price)
@@ -221,7 +230,7 @@ def run_market_simulation():
             elif isinstance(agent, institutional_agent.Institutional_Agent):
                 exit_signal, exit_type = agent.compute_exit_signal(price)
             elif isinstance(agent, momentum_agent.Momentum_Agent):
-                exit_signal, exit_type = agent.compute_exit_signal(price)
+                exit_signal, exit_type = agent.compute_exit_signal(price, trend)
             elif isinstance(agent, value_investor.value_investor_agent):
                 exit_signal, exit_type = agent.compute_exit_signal(price)
             else:
@@ -242,6 +251,10 @@ def run_market_simulation():
                     "exit_price": price,
                     "position": agent.position,
                     "realised_PnL": (price - agent.entry_price) * agent.position,
+                   "realised_PnL_pct": (
+                        f"{round(((price - agent.entry_price) / agent.entry_price) * 100, 2)}%"
+                        if agent.entry_price != 0 else "N/A"
+                    )
                 }
 
                 if isinstance(agent, retail_agent.Retail_Agent):
@@ -264,11 +277,12 @@ def run_market_simulation():
                     signal = agent.compute_signal(
                         delayed_state['volatility'],
                         delayed_state["event"], 
-                        delayed_state["panic"], PRICE_HISTORY[:effective_t], 
+                        delayed_state["panic"], 
+                        PRICE_HISTORY[:effective_t], 
                         delayed_state["value_signal"]
                     )
                     
-                    order = agent.decide_order(price, signal, liquidity)
+                    order = agent.decide_order(price, signal, liquidity, t)
 
                 elif isinstance(agent, retail_agent.Retail_Agent):
 
@@ -416,14 +430,14 @@ def run_market_simulation():
     pd.DataFrame(momentum_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "MOMENTUM_EXIT_LOG.csv", index=False)
     pd.DataFrame(value_investor_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "VALUE_INVESTOR_EXIT_LOG.csv", index=False)
 
-    print(f"\nSimulation complete. Data saved to {DATA_DIR}")   
 
+    print(f"\nSimulation complete. Data saved to {DATA_DIR}")       
 
-    
 
 
 if __name__ == "__main__":
-    run_market_simulation()
-
-
-    
+    try:
+        run_market_simulation()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()

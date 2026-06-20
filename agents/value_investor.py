@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_VALUE_INVESTOR_LOSS_RATE, BASE_VALUE_INVESTOR_PROFIT_RATE
+from config import BASE_VALUE_INVESTOR_LOSS_RATE, BASE_VALUE_INVESTOR_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR
 import random 
 # ============================================================
 # VALUE INVESTOR AGENT
@@ -48,10 +48,10 @@ class value_investor_agent(Agent):
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
               (self.value_weight * value_signal)  # DOMINANT: buy cheap, sell expensive
-            - ((self.panic_weight * panic) if panic >= 0.25 else 0)         # cautious: real crises can impair fundamentals
+            - (self.panic_weight * (panic - PANIC_FLOOR))         # cautious: real crises can impair fundamentals
             + (self.trend_weight * trend)         # weak: don't fight very strong momentum
             + (self.event_weight * event)         # minimal news sensitivity
-            - ((self.volatility_weight * volatility) if volatility >= 0.5 else 0)    # minimal vol sensitivity
+            - (self.volatility_weight * (volatility -  BASE_VOLATILITY))    # minimal vol sensitivity
         )
         return np.clip(signal, -1.0, 1.0)
 

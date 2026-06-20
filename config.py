@@ -47,7 +47,7 @@ BETA2 = 0.15  # demand-driven vol shock
 BETA3 = 0.10  # event-driven vol spike (only negative events — see market_state.py)
 
 # ----(EWMA) ----
-VALUE_EWMA_ALPHA = 0.025        #halflife = ln(2)/value
+VALUE_EWMA_ALPHA = 0.05        #halflife = ln(2)/value
 TREND_EWMA_ALPHA = 0.18
 
 # ---- LIQUIDITY ----
@@ -60,8 +60,8 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # Events fire at the given timestep and decay exponentially afterward.
 EVENT_AT = {
     #t : "event"
-    60 : "strong_positive",
-    160 : "crisis",
+    # 60 : "strong_positive",
+    # 160 : "crisis",
 }
 
 # Numeric initial impact of each event type.
@@ -134,3 +134,6 @@ BASE_VALUE_INVESTOR_PROFIT_RATE = 0.40
 # CONTRARIAN_PARTICIPATION = 0.18
 # RETAIL_PARTICIPATION = 0.05
 AGENT_PARTICIPATION_RATE = 0.1
+
+#panic floor 
+PANIC_FLOOR = 0.04  # minimum panic level to prevent continous signal drag 

@@ -22,6 +22,7 @@ data/simulation_results.csv
 data/*.csv
 data/*.json
 data/*.parquet
+data/agent_exit_log/
 
 # --- IDE and OS ---
 .vscode/
