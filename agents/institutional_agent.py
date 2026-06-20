@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE
+from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE, PANIC_FLOOR, BASE_VOLATILITY
 import random 
 # ============================================================
 # INSTITUTIONAL AGENT
@@ -41,8 +41,8 @@ class Institutional_Agent(Agent):
         signal = (
               (self.trend_weight * trend)         # trend-aware (not blind follower)
             + (self.event_weight * event)         # news-driven via research
-            - (self.volatility_weight * volatility)    # vol-targeting risk mandate
-            - (self.panic_weight * panic)         # low emotional sensitivity
+            - (self.volatility_weight * (volatility -  BASE_VOLATILITY))    # vol-targeting risk mandate
+            - (self.panic_weight * (panic - PANIC_FLOOR))         # low emotional sensitivity
             + (self.value_weight * value_signal)  # fundamental value anchor
         )
         return np.clip(signal, -1.0, 1.0)

@@ -134,3 +134,6 @@ BASE_VALUE_INVESTOR_PROFIT_RATE = 0.40
 # CONTRARIAN_PARTICIPATION = 0.18
 # RETAIL_PARTICIPATION = 0.05
 AGENT_PARTICIPATION_RATE = 0.1
+
+#panic floor 
+PANIC_FLOOR = 0.04  # minimum panic level to prevent continous signal drag 

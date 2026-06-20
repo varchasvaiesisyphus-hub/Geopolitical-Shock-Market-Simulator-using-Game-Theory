@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE
+from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR
 import random 
 # ============================================================
 # MOMENTUM AGENT
@@ -66,8 +66,8 @@ class Momentum_Agent(Agent):
         signal = (
               (trend        * self.trend_weight)   # smoothed rolling trend (primary signal)
             + (event        * self.event_weight)   # news amplifies the trend
-            - (panic        * self.panic_weight)   # panic = possible trend snap
-            - (volatility   * self.volatility_weight)   # noisy environment
+            - ((panic - PANIC_FLOOR)        * self.panic_weight)   # panic = possible trend snap
+            - ((volatility -  BASE_VOLATILITY)   * self.volatility_weight)   # noisy environment
             + (value_signal * self.value_weight)   # guard: don't short deeply distressed assets
         )
         return np.clip(signal, -1.0, 1.0)

@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_RETAIL_LOSS_RATE, BASE_RETAIL_PROFIT_RATE, BASE_VOLATILITY
+from config import BASE_RETAIL_LOSS_RATE, BASE_RETAIL_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR
 import random 
 # ============================================================
 # RETAIL AGENT
@@ -25,23 +25,23 @@ class Retail_Agent(Agent):
     def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0):
         super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price = entry_price)
         # Parameterized weight variance: each retail agent has unique weights within behavioral bounds
-        self.trend_weight = np.clip(np.random.normal(0.30, 0.05), 0.20, 0.45)
-        self.event_weight = np.clip(np.random.normal(0.45, 0.08), 0.30, 0.60)
-        self.panic_weight = np.clip(np.random.normal(0.40, 0.05), 0.35, 0.55)
-        self.volatility_weight = np.clip(np.random.normal(0.30, 0.07), 0.15, 0.4)
-        self.value_weight = np.clip(np.random.normal(0.25, 0.05), 0.15, 0.35)
+        self.trend_weight       = np.clip(np.random.normal(0.30, 0.05), 0.20, 0.40)
+        self.event_weight       = np.clip(np.random.normal(0.45, 0.08), 0.30, 0.60)
+        self.panic_weight       = np.clip(np.random.normal(0.38, 0.06), 0.26, 0.50)
+        self.volatility_weight  = np.clip(np.random.normal(0.30, 0.07), 0.16, 0.44)
+        self.value_weight       = np.clip(np.random.normal(0.25, 0.05), 0.15, 0.35)
         self.signal_delay = random.randint(2, 4)
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
               (self.trend_weight * trend)         # weak trend-following
             + (self.event_weight * event)         # news reactive
-            - (self.panic_weight * panic)         # DOMINANT: panic-driven selling
+            - (self.panic_weight * (panic - PANIC_FLOOR))         # DOMINANT: panic-driven selling
             - (self.volatility_weight * (volatility -  BASE_VOLATILITY))    # vol-averse
             + (self.value_weight * value_signal)  # weak value anchor
         )
         return np.clip(signal, -1.0, 1.0)
-    
+
     def compute_exit_signal(self, price, panic):
 
         if self.position == 0:
