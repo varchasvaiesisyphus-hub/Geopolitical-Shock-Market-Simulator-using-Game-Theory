@@ -330,7 +330,7 @@ def run_market_simulation():
 
                     effective_t = max(0, t - agent.signal_delay)
                     delayed_state = market_state_for_agents[effective_t]
-
+                    
                     signal = agent.compute_signal(
                         delayed_state['trend'],
                         delayed_state['volatility'],
