@@ -137,3 +137,19 @@ AGENT_PARTICIPATION_RATE = 0.1
 
 #panic floor 
 PANIC_FLOOR = 0.04  # minimum panic level to prevent continous signal drag 
+
+#SHORTING RESTRICTIONS
+INITIAL_MARGIN_RATE = 0.5  # initial margin requirement for short selling (50% of position value)
+MAINTENANCE_MARGIN_RATE = 0.25  # maintenance margin requirement (25% of position value)
+
+MAX_SHORT_FRACTION = {
+    "contrarian_agent":  0.25,
+    "institutional_agent" : 0.15,
+    "momentum_agent" : 0.40,
+    "retail_agent" :  0, 
+    "value_agent" : 0.30
+}
+
+FLOAT_SIZE = 50000   # roughly 2x the theoretical max short interest and 5x your existing L_0
+BASE_BORROW_RATE = 0.01
+BORROW_RATE_SENSITIVITY = 0.50

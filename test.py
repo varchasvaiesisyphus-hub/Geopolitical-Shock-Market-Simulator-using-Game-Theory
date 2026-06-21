@@ -10,3 +10,8 @@ to add
 3. find out if the weght ranges are good and also threshold values and 
 make threshold values part of config file 
 """
+
+
+from config import MAX_SHORT_FRACTION
+
+print( MAX_SHORT_FRACTION["contrarian_agent"])

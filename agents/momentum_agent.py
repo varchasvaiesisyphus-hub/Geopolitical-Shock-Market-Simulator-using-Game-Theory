@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR
+from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR, MAX_SHORT_FRACTION
 import random 
 # ============================================================
 # MOMENTUM AGENT
@@ -47,8 +47,8 @@ class Momentum_Agent(Agent):
 
         self.last_entry_t = -999   # timestep of last entry
         self.entry_cooldown = random.randint(5, 15)  # steps to wait before re-entering
-
-
+    
+        self.max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"]
 
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:

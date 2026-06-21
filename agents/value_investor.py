@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_VALUE_INVESTOR_LOSS_RATE, BASE_VALUE_INVESTOR_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR
+from config import BASE_VALUE_INVESTOR_LOSS_RATE, BASE_VALUE_INVESTOR_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR, MAX_SHORT_FRACTION
 import random 
 # ============================================================
 # VALUE INVESTOR AGENT
@@ -44,6 +44,8 @@ class value_investor_agent(Agent):
         self.event_weight = np.clip(np.random.normal(0.05, 0.03), 0.01, 0.12)
         self.volatility_weight = np.clip(np.random.normal(0.05, 0.03), 0.01, 0.12)
         self.signal_delay =  random.randint(0, 1) 
+
+        self.max_short_fraction = MAX_SHORT_FRACTION["value_agent"]
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (

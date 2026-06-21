@@ -1,4 +1,5 @@
 import numpy as np
+from config import MAINTENANCE_MARGIN_RATE, INITIAL_MARGIN_RATE
 
 # ============================================================
 # BASE AGENT
@@ -25,6 +26,12 @@ class Agent:
         self.signal_threshold = signal_threshold
         self.entry_price = entry_price
 
+        #short selling parameters 
+        self.margin_posted = 0
+        self.borrow_cost_accrued = 0
+        self.max_short_fraction = 0
+        self.short_positions = 0
+
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         
         return 0.0
@@ -36,7 +43,7 @@ class Agent:
 
         order = (self.k * signal * self.cash) / price   #number of shares 
 
-        if order > 0:
+        if order > 0 and self.position >= 0:  # long or flat
             max_holding = (self.initial_cash/ price) * self.max_position_fraction
             
             if self.position < max_holding:
@@ -45,42 +52,93 @@ class Agent:
                 if self.cash > (remaining_position*price):
                     order = min([order, remaining_position])
                 else:
-                    order = self.cash / price   #note that cahs reserves would be ADDED TO THIS STEP
+                    order = self.cash / price   #note that cash reserves would be ADDED TO THIS STEP
 
             else:
                 order = 0
 
-    
-        elif order < 0:
-            if self.position > 0:
-                order = -np.min([np.abs(order), self.position])
 
-            else:
-                order = 0
+        elif order > 0 and self.position < 0: #covering shorts
+            order = min([order, abs(self.position)])
 
-        # #caping order size based on the available liqwuidity
-        # MAX_PARTICIPATION = 0.1
+        elif order < 0 and self.position > 0: #covering longs
+            order = -np.min([np.abs(order), self.position])
 
-        # max_order_size = MAX_PARTICIPATION * liquidity
-        # order_size = abs(order * price)
+        elif order < 0 and self.position <=  0: #short or extend short
+            if self.max_short_fraction == 0:  
+                return 0.0
+            
 
-        # if order_size > max_order_size:
-        #     order = np.sign(order) * (max_order_size / price)
+            max_short_holding = (self.initial_cash/price) * self.max_short_fraction
+            remaining_short_position = max_short_holding - abs(self.position)
+
+            free_cash = self.cash - self.margin_posted
+            max_affordable_shares = free_cash / (price * INITIAL_MARGIN_RATE)
+            
+            order = -min(remaining_short_position, max_affordable_shares, abs(order))          
+
+        else:
+            order = 0.0
             
         return np.round(order, 0)
+    def decide_order(self, price, signal, liquidity):
+
+        if abs(signal) < self.signal_threshold:
+            return 0.0
+
+        order = (self.k * signal * self.cash) / price
+
+        if order > 0 and self.position >= 0:
+            max_holding = (self.initial_cash / price) * self.max_position_fraction
+            if self.position < max_holding:
+                remaining_position = max_holding - self.position
+                if self.cash > (remaining_position * price):
+                    order = min([order, remaining_position])
+                else:
+                    order = self.cash / price
+            else:
+                order = 0
+
+        elif order > 0 and self.position < 0:
+            order = min([order, abs(self.position)])
+
+        elif order < 0 and self.position > 0:
+            order = -np.min([np.abs(order), self.position])
+
+        elif order < 0 and self.position <= 0:
+            if self.max_short_fraction == 0:
+                return 0.0
+
+            max_short_holding = (self.initial_cash / price) * self.max_short_fraction
+
+            if abs(self.position) >= max_short_holding:      # NEW guard
+                return 0.0
+
+            remaining_short_position = max_short_holding - abs(self.position)
+            free_cash = self.cash - self.margin_posted
+            max_affordable_shares = free_cash / (price * INITIAL_MARGIN_RATE)
+
+            order = -min(remaining_short_position, max_affordable_shares, abs(order))
+
+        else:
+            order = 0.0
+
+        return np.round(order, 0)
+
 
     def update_state(self, order, price):
 
         old_position = self.position
         new_position = old_position + order
 
-
         if order == 0:
             return
-        
-        # CASE 1: opening new position       
-        if old_position == 0 and new_position > 0:
+
+        # CASE 1: opening new position
+        if old_position == 0 and new_position != 0:
             self.entry_price = price
+            if new_position < 0:
+                self.margin_posted = abs(new_position) * price * INITIAL_MARGIN_RATE
 
         # CASE 2: increasing same-side position
         elif (old_position > 0 and order > 0) or \
@@ -91,23 +149,28 @@ class Agent:
                 (abs(order) * price)
             ) / abs(new_position)
 
+            if new_position < 0:
+                self.margin_posted += abs(order) * price * INITIAL_MARGIN_RATE
+
         # CASE 3: fully closing
         elif new_position == 0:
             self.entry_price = 0
+            self.margin_posted = 0
 
         # CASE 4: flipping side
         elif (old_position > 0 > new_position) or \
             (old_position < 0 < new_position):
-
+            
             self.entry_price = price
 
         # CASE 5: reducing only
         else:
-            pass
+            if old_position < 0:   # margin only applies on the short side
+                self.margin_posted -= self.margin_posted * (abs(order) / abs(old_position))
 
         self.position = new_position
         self.cash -= order * price
-
+        
     def get_state(self):
         return {"name": self.name, "position": round(self.position, 4) if self.position >0 else None,
                 "cash": round(self.cash, 2), "avg_entry_price": round(self.entry_price, 2)}
@@ -118,5 +181,7 @@ class Agent:
 
         return pnl
     
+
+
 
 

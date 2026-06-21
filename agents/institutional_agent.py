@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE, PANIC_FLOOR, BASE_VOLATILITY
+from config import BASE_INSTITUTIONAL_LOSS_RATE, BASE_INSTITUTIONAL_PROFIT_RATE, PANIC_FLOOR, BASE_VOLATILITY, MAX_SHORT_FRACTION
 import random 
 # ============================================================
 # INSTITUTIONAL AGENT
@@ -37,6 +37,8 @@ class Institutional_Agent(Agent):
         self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.signal_delay = 0
 
+        self.max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"]
+
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
               (self.trend_weight * trend)         # trend-aware (not blind follower)
@@ -69,6 +71,3 @@ class Institutional_Agent(Agent):
         elif price >= takeprofit:
              return -self.position, "take-profit"
         
-# obtain portfolio pnl = capital - unrealised loss/profit 
-# which is the same as unrealised pnl since we are taking avg entry point. 
-# multiple entries combine into the same entrt point. 

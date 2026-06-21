@@ -1,7 +1,7 @@
 from agents.base_agent import Agent
 import numpy as np
 import random 
-from config import BASE_VOLATILITY, PANIC_FLOOR
+from config import BASE_VOLATILITY, PANIC_FLOOR, MAX_SHORT_FRACTION
 
 
 
@@ -18,6 +18,9 @@ class ContrarianAgent(Agent):
         self.volatility_weight = np.clip(np.random.normal(0.12, 0.05), 0.10, 0.30)
         self.signal_delay = random.randint(1, 2)
         self.reversion_requirement = np.clip(np.random.normal(0.70, 0.1), 0.5, 0.9)
+
+        self.max_short_fraction = MAX_SHORT_FRACTION["contrarian_agent"]
+
     def update_state(self, order, price, ewma_price):
         super().update_state(order, price)
 
