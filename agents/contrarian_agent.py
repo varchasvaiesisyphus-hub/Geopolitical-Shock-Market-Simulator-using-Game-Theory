@@ -60,3 +60,15 @@ class ContrarianAgent(Agent):
             
             else:
                 return 0, "Hold"
+            
+        elif self.position < 0:
+            stoploss = self.entry_price + (self.entry_price * self.risk_aversion)
+            entry_gap = self.entry_price - self.entry_ewma_price
+            target_price = self.entry_price - (entry_gap * reversion_fraction)
+
+            if price <= target_price and price <ewma:
+                return + self.position, "take-profit"
+            elif price >= stoploss:
+                return +self.position, "stop-loss"
+            else:
+                return 0, "Hold"
