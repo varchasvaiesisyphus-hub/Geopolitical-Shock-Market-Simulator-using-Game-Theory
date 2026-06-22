@@ -34,6 +34,7 @@ class Momentum_Agent(Agent):
         self.entry_t = 0
 
         self.current_high = 0
+        self.current_low = float('inf')
         self.prev_high = 0
 
         self.lookback = lookback
@@ -46,7 +47,7 @@ class Momentum_Agent(Agent):
         self.signal_delay = 1  
 
         self.last_entry_t = -999   # timestep of last entry
-        self.entry_cooldown = random.randint(5, 15)  # steps to wait before re-entering
+        # self.entry_cooldown = random.randint(5, 15)  # steps to wait before re-entering
     
         self.max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"]
 
@@ -98,7 +99,8 @@ class Momentum_Agent(Agent):
 
         if self.position == 0:
             return 0, "no existing positions"
-
+        
+        #COMPUTE VOLATILITY
         window = min(self.lookback, len(PRICE_HISTORY) - 1)
         if window < 5:
             volatility = 0.05
@@ -106,40 +108,72 @@ class Momentum_Agent(Agent):
             recent = PRICE_HISTORY[-window:]
             log_returns = np.diff(np.log(recent))
             volatility = float(np.std(log_returns))
-            
+
         base_stop_pct = min(0.20,max(0.05,2 * volatility))
-        stop_pct = base_stop_pct * ( self.risk_aversion)
-        stoploss = self.current_high * (1 - stop_pct)
+        stop_pct = max(base_stop_pct * self.risk_aversion, 0.02)
 
-        drawdown_from_high = (self.current_high - price) / self.current_high if self.current_high > 0 else 0
+        #LONG SIDE 
+        if self.position > 0:
 
-        if price <= stoploss:                          # hard floor — always exit
-            return -self.position, "stop-loss"
-        
-        if drawdown_from_high < 0.05:          # within 5% of high → hold
-            return 0, "hold"
-        
-        elif drawdown_from_high < 0.10:        # 5-10% drawdown → reduce
-            return round(-self.position * 0.25), "Reduce-Position"
-        
-        elif len(self.trend_history) >= 2 and \
-            abs(self.trend_history[-2] - self.trend_history[-1]) > 0.15:
-            return -self.position, "Exit"
-        
-        elif len(self.trend_history) >= 2 and \
-            np.sign(self.trend_history[-2]) != np.sign(self.trend_history[-1]):
-            return -self.position, "Exit"
-        
+            stoploss = self.current_high * (1 - stop_pct)
+            
+            drawdown_from_high = (self.current_high - price) / self.current_high if self.current_high > 0 else 0
+
+            if price <= stoploss:                          # hard floor — always exit
+                return -self.position, "stop-loss"
+            
+            if drawdown_from_high < 0.05:          # within 5% of high → hold
+                return 0, "hold"
+            
+            elif drawdown_from_high < 0.10:        # 5-10% drawdown → reduce
+                return round(-self.position * 0.25), "Reduce-Position"
+            
+            elif len(self.trend_history) >= 2 and \
+                abs(self.trend_history[-2] - self.trend_history[-1]) > 0.15:
+                return -self.position, "Exit"
+            
+            elif len(self.trend_history) >= 2 and \
+                np.sign(self.trend_history[-2]) != np.sign(self.trend_history[-1]):
+                return -self.position, "Exit"
+            
+            else:
+                return 0, "Hold"
+
+       #SHORT SIDE     
         else:
-            return 0, "hold"
+            stoploss = self.current_low * (1 + stop_pct)
+            rebound_from_low = ( price - self.current_low) / self.current_low if self.current_low > 0 else 0
+
+            if price >= stoploss:
+                return -self.position, "stoploss"
+            
+            if rebound_from_low < 0.05:
+                return 0.0, "Hold"
+            
+            elif rebound_from_low < 0.10:
+                return round(-self.position * 0.25), "Reduce-Position"
+            
+            elif len(self.trend_history) >= 2 and \
+                abs(self.trend_history[-2] - self.trend_history[-1]) > 0.15:
+                return -self.position, "Exit"
+
+            elif len(self.trend_history) >= 2 and \
+                np.sign(self.trend_history[-2]) != np.sign(self.trend_history[-1]):
+                return -self.position, "Exit"
+            
+            else:
+                return 0.0, "Hold"
+
 
 
 
 
     def update_state(self, order, price, t):
+
         old_position = self.position
-        super().update_state(order, price)
         new_position = old_position + order
+
+        super().update_state(order, price)
 
         # case 1: fresh position
         if old_position == 0 and new_position != 0:
@@ -151,9 +185,8 @@ class Momentum_Agent(Agent):
             self.entry_t = 0
             self.current_high = 0
             self.prev_high = 0
-            # last_entry_t intentionally NOT reset here
-            # it should remember WHEN the last entry was, even after exit
-            # so the cooldown is measured from the last entry, not from 0
+            self.current_low = float('inf')  
+
 
         elif new_position != old_position:
             self.entry_t = t
@@ -161,11 +194,14 @@ class Momentum_Agent(Agent):
         if self.position > 0:
             self.current_high = max(self.current_high, price)
 
-    def decide_order(self, price, signal, liquidity, t = 0):
+        elif self.position < 0:
+            self.current_low = min(self.current_low, price)
 
-        if t - self.last_entry_t < self.entry_cooldown and self.position == 0:
-            return 0.0
-        return super().decide_order(price, signal, liquidity)
+    # def decide_order(self, price, signal, liquidity, t = 0):
+
+    #     if t - self.last_entry_t < self.entry_cooldown and self.position == 0:
+    #         return 0.0
+    #     return super().decide_order(price, signal, liquidity)
     
 
 
