@@ -228,7 +228,7 @@ def run_market_simulation():
             elif isinstance(agent, contrarian_agent.ContrarianAgent):
                 exit_signal, exit_type = agent.compute_exit_signal(price, ewma_price)
             elif isinstance(agent, institutional_agent.Institutional_Agent):
-                exit_signal, exit_type = agent.compute_exit_signal(price)
+                exit_signal, exit_type = agent.compute_exit_signal(price, volatility)
             elif isinstance(agent, momentum_agent.Momentum_Agent):
                 exit_signal, exit_type = agent.compute_exit_signal(price, trend)
             elif isinstance(agent, value_investor.value_investor_agent):

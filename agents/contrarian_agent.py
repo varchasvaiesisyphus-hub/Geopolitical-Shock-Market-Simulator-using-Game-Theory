@@ -43,13 +43,10 @@ class ContrarianAgent(Agent):
         if self.position == 0:
             return 0, "no existing positions"
 
-
+        reversion_fraction = self.reversion_requirement
         if self.position> 0:
             stoploss = self.entry_price - (self.entry_price* self.risk_aversion)
-
-
-            entry_gap = self.entry_ewma_price - self.entry_price
-            reversion_fraction = self.reversion_requirement
+            entry_gap = self.entry_ewma_price - self.entry_price    
             target_price = self.entry_price + (entry_gap * reversion_fraction)
 
             if price >= target_price and price>= ewma:
@@ -67,8 +64,8 @@ class ContrarianAgent(Agent):
             target_price = self.entry_price - (entry_gap * reversion_fraction)
 
             if price <= target_price and price <ewma:
-                return + self.position, "take-profit"
+                return  -self.position, "take-profit"
             elif price >= stoploss:
-                return +self.position, "stop-loss"
+                return -self.position, "stop-loss"
             else:
                 return 0, "Hold"

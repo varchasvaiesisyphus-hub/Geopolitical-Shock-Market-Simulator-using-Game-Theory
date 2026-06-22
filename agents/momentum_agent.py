@@ -99,16 +99,16 @@ class Momentum_Agent(Agent):
         if self.position == 0:
             return 0, "no existing positions"
 
-        # stoploss = self.current_high - (self.current_high*(0.1- self.risk_aversion))  #higher the risk aversion lower the trailing percentage (5-10%)
-        if len(PRICE_HISTORY) >= 2:
-            recent = PRICE_HISTORY[-20:]
-            log_returns = np.diff(np.log(recent))
-            volatility = float(np.std(log_returns)) if len(log_returns) > 0 else 0.05
-        else:
+        window = min(self.lookback, len(PRICE_HISTORY) - 1)
+        if window < 5:
             volatility = 0.05
+        else:
+            recent = PRICE_HISTORY[-window:]
+            log_returns = np.diff(np.log(recent))
+            volatility = float(np.std(log_returns))
             
         base_stop_pct = min(0.20,max(0.05,2 * volatility))
-        stop_pct = base_stop_pct * (1 - self.risk_aversion)
+        stop_pct = base_stop_pct * ( self.risk_aversion)
         stoploss = self.current_high * (1 - stop_pct)
 
         drawdown_from_high = (self.current_high - price) / self.current_high if self.current_high > 0 else 0

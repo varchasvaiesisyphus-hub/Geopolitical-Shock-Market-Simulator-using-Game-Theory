@@ -36,51 +36,7 @@ class Agent:
         
         return 0.0
 
-    def decide_order(self, price, signal, liquidity):
 
-        if abs(signal) < self.signal_threshold:
-            return 0.0
-
-        order = (self.k * signal * self.cash) / price   #number of shares 
-
-        if order > 0 and self.position >= 0:  # long or flat
-            max_holding = (self.initial_cash/ price) * self.max_position_fraction
-            
-            if self.position < max_holding:
-            
-                remaining_position = max_holding - self.position
-                if self.cash > (remaining_position*price):
-                    order = min([order, remaining_position])
-                else:
-                    order = self.cash / price   #note that cash reserves would be ADDED TO THIS STEP
-
-            else:
-                order = 0
-
-
-        elif order > 0 and self.position < 0: #covering shorts
-            order = min([order, abs(self.position)])
-
-        elif order < 0 and self.position > 0: #covering longs
-            order = -np.min([np.abs(order), self.position])
-
-        elif order < 0 and self.position <=  0: #short or extend short
-            if self.max_short_fraction == 0:  
-                return 0.0
-            
-
-            max_short_holding = (self.initial_cash/price) * self.max_short_fraction
-            remaining_short_position = max_short_holding - abs(self.position)
-
-            free_cash = self.cash - self.margin_posted
-            max_affordable_shares = free_cash / (price * INITIAL_MARGIN_RATE)
-            
-            order = -min(remaining_short_position, max_affordable_shares, abs(order))          
-
-        else:
-            order = 0.0
-            
-        return np.round(order, 0)
     def decide_order(self, price, signal, liquidity):
 
         if abs(signal) < self.signal_threshold:

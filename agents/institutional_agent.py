@@ -36,7 +36,7 @@ class Institutional_Agent(Agent):
         self.panic_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.signal_delay = 0
-
+        self.volatility_budget = np.clip(np.random.normal((0.20, 0.04), 0.12, 0.30))
         self.max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"]
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
@@ -49,25 +49,62 @@ class Institutional_Agent(Agent):
         )
         return np.clip(signal, -1.0, 1.0)
 
-    def compute_exit_signal(self, price):
+    def compute_exit_signal(self, price, volatility):
 
         if self.position == 0:
-            return 0, "no existing positions"
-
-        # Institutions have tight stops due to risk management mandates
-        # They prioritize capital preservation and compliance
-        stoploss_pct = BASE_INSTITUTIONAL_LOSS_RATE * self.risk_aversion
-        takeprofit_pct = BASE_INSTITUTIONAL_PROFIT_RATE / self.risk_aversion
-
-        stoploss = self.entry_price - self.entry_price * stoploss_pct
-        takeprofit = self.entry_price + self.entry_price * takeprofit_pct
-
-        if price > stoploss and price < takeprofit:
-             return 0, "hold"
-
-        elif price <= stoploss:
-            return -self.position, "stop-loss"
-
-        elif price >= takeprofit:
-             return -self.position, "take-profit"
+            return 0, "no positions"
         
+        
+        vol_scalar = volatility / BASE_VOLATILITY
+        stoploss_pct = BASE_INSTITUTIONAL_LOSS_RATE * self.risk_aversion / vol_scalar
+        takeprofit_pct = BASE_INSTITUTIONAL_PROFIT_RATE / self.risk_aversion
+        
+
+        if self.position > 0:
+
+            if price>= (self.entry_price * (1+takeprofit_pct)):
+                return -self.position, "Take-profit"
+            
+            elif price <= (self.entry_price * (1-stoploss_pct)):
+                return -self.position, "Stop-loss"
+
+            elif volatility> self.volatility_budget:
+                breach_fraction = (volatility - self.volatility_budget)/self.volatility_budget
+                order = round(-self.position * min(breach_fraction, 1.0))
+                return order, "reduce-exposure"
+
+            else:
+                return 0, "Hold"
+            
+        else:
+            stoploss = self.entry_price * (1 + stoploss_pct)
+            take_profit = self.entry_price * (1 - takeprofit_pct)
+
+            if price <= take_profit:
+                return -self.position, "Take-profit"
+            
+            elif price >= stoploss:
+                return -self.position, "Stop-loss"
+            
+            elif volatility > self.volatility_budget:
+                breach_fraction = (volatility - self.volatility_budget)/self.volatility_budget
+                order = round(-self.position * min(breach_fraction, 1.0))
+                return order, "reduce-exposure"
+            
+            else:
+                return 0.0, "Hold"
+            
+
+
+            
+
+
+
+
+
+            
+        
+
+            
+
+
