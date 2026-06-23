@@ -49,20 +49,24 @@ class Retail_Agent(Agent):
 
         if self.position == 0:
             return 0, "no existing positions"
-    
-        
-        
+            
         stoploss_pct = BASE_RETAIL_LOSS_RATE * self.risk_aversion
         takeprofit_pct = BASE_RETAIL_PROFIT_RATE / self.risk_aversion
+        
+        if self.position > 0:
 
-        stoploss = self.entry_price - self.entry_price*stoploss_pct
-        takeprofit = self.entry_price + self.entry_price*takeprofit_pct
+            stoploss = self.entry_price - self.entry_price*stoploss_pct
+            takeprofit = self.entry_price + self.entry_price*takeprofit_pct
 
-        if price > stoploss and price < takeprofit:
-             return 0, "hold"
+            if price > stoploss and price < takeprofit:
+                return 0, "hold"
 
-        elif price <= stoploss or panic > self.risk_aversion:   #added risk aversion and panic to the exit signal
-            return -self.position, "stop-loss"
+            elif price <= stoploss or panic > self.risk_aversion:   #added risk aversion and panic to the exit signal
+                return -self.position, "stop-loss"
 
-        elif price >= takeprofit:
-             return -self.position, "take-profit"
+            elif price >= takeprofit:
+                return -self.position, "take-profit"
+            
+            
+# risk_aversion = random.uniform(0.40, 0.80),
+# panic - [0-1] --> check if the two ranges produce the behaviour intended 

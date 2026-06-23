@@ -61,21 +61,23 @@ class value_investor_agent(Agent):
 
         if self.position == 0:
             return 0, "no existing positions"
-
-        # Value investors have wide stops and large profit targets
-        # They believe in fundamental value and will tolerate volatility
-        # to capture long-term mean reversion
+        
         stoploss_pct = BASE_VALUE_INVESTOR_LOSS_RATE * self.risk_aversion
         takeprofit_pct = BASE_VALUE_INVESTOR_PROFIT_RATE / self.risk_aversion
 
-        stoploss = self.entry_price - self.entry_price * stoploss_pct
-        takeprofit = self.entry_price + self.entry_price * takeprofit_pct
+        if self.position > 0:
+            # Value investors have wide stops and large profit targets
+            # They believe in fundamental value and will tolerate volatility
+            # to capture long-term mean reversion
 
-        if price > stoploss and price < takeprofit:
-             return 0, "hold"
+            stoploss = self.entry_price - self.entry_price * stoploss_pct
+            takeprofit = self.entry_price + self.entry_price * takeprofit_pct
 
-        elif price < stoploss:
-            return -self.position, "stop-loss"
+            if price > stoploss and price < takeprofit:
+                return 0, "hold"
 
-        elif price > takeprofit:
-             return -self.position, "take-profit"
+            elif price < stoploss:
+                return -self.position, "stop-loss"
+
+            elif price > takeprofit:
+                return -self.position, "take-profit"
