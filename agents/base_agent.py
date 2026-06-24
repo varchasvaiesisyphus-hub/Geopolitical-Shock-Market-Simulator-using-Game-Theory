@@ -45,16 +45,20 @@ class Agent:
         order = (self.k * signal * self.cash) / price
 
         if order > 0 and self.position >= 0:
-            max_holding = (self.initial_cash / price) * self.max_position_fraction
-            if self.position < max_holding:
-                remaining_position = max_holding - self.position
-                if self.cash > (remaining_position * price):
-                    order = min([order, remaining_position])
-                else:
-                    order = self.cash / price
-            else:
-                order = 0
+        
+            budget_ceiling = self.initial_cash * self.max_position_fraction
+            budget_committed = abs(self.position) * self.entry_price 
 
+            if budget_committed < budget_ceiling:   #check if the budget ceiling is reached 
+                remaining_budget = budget_ceiling - budget_committed
+                
+                desired_order_size = order * price 
+                order_size = min(remaining_budget, desired_order_size, self.cash)
+                order = np.round(order_size/price, 0)
+            
+            else:
+                return 0.0 
+            
         elif order > 0 and self.position < 0:
             order = min([order, abs(self.position)])
 
@@ -62,24 +66,21 @@ class Agent:
             order = -np.min([np.abs(order), self.position])
 
         elif order < 0 and self.position <= 0:
-            if self.max_short_fraction == 0:
-                return 0.0
+            budget_ceiling = self.initial_cash * self.max_short_fraction
+            budget_committed = (abs(self.position) * self.entry_price) 
 
-            max_short_holding = (self.initial_cash / price) * self.max_short_fraction
+            if budget_committed < budget_ceiling:
+                remaining_budget = budget_ceiling - budget_committed
 
-            if abs(self.position) >= max_short_holding:      # NEW guard
-                return 0.0
-
-            remaining_short_position = max_short_holding - abs(self.position)
-            free_cash = self.cash - self.margin_posted
-            max_affordable_shares = free_cash / (price * INITIAL_MARGIN_RATE)
-
-            order = -min(remaining_short_position, max_affordable_shares, abs(order))
-
-        else:
-            order = 0.0
-
-        return np.round(order, 0)
+                
+                free_cash = self.cash - self.margin_posted
+                desired_order_size = abs(order) * price 
+                order_size = min(remaining_budget, desired_order_size, free_cash)
+                order = -np.round(order_size/price, 0)  
+            else:
+                return 0.0  
+            
+        return np.round(order, 0)            
 
 
     def update_state(self, order, price):
