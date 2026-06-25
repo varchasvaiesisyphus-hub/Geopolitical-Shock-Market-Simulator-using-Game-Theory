@@ -61,7 +61,7 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 EVENT_AT = {
     #t : "event"
     # 60 : "strong_positive",
-    # 160 : "crisis",
+    160 : "crisis",
 }
 
 # Numeric initial impact of each event type.
