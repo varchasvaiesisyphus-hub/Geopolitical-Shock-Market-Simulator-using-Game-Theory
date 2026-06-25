@@ -220,7 +220,7 @@ def run_market_simulation():
         institutional_demand = 0
         value_investor_demand = 0 
         contrarian_demand = 0
-
+        
         total_short_position = 0
         for agent in all_agents:
             # 5.1 Check for exit signals first - each agent type computes independently
