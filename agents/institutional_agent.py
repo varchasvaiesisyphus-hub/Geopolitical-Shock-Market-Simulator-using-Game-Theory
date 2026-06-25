@@ -36,7 +36,7 @@ class Institutional_Agent(Agent):
         self.panic_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.signal_delay = 0
-        self.volatility_budget = np.clip(np.random.normal((0.20, 0.04), 0.12, 0.30))
+        self.volatility_budget = np.clip(np.random.normal(0.20, 0.04), 0.12, 0.30)
         self.max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"]
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):

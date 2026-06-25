@@ -29,8 +29,7 @@ class Agent:
         #short selling parameters 
         self.margin_posted = 0
         self.borrow_cost_accrued = 0
-        self.max_short_fraction = 0
-        self.short_positions = 0
+        
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         
@@ -65,7 +64,10 @@ class Agent:
         elif order < 0 and self.position > 0:
             order = -np.min([np.abs(order), self.position])
 
-        elif order < 0 and self.position <= 0:
+        elif order < 0 and self.position <= 0:      
+            
+
+
             budget_ceiling = self.initial_cash * self.max_short_fraction
             budget_committed = (abs(self.position) * self.entry_price) 
 
@@ -129,13 +131,12 @@ class Agent:
         self.cash -= order * price
         
     def get_state(self):
-        return {"name": self.name, "position": round(self.position, 4) if self.position >0 else None,
+        return {"name": self.name, "position": round(self.position, 4),
                 "cash": round(self.cash, 2), "avg_entry_price": round(self.entry_price, 2)}
     
 
-    def get_pnl(self,price):
-        pnl = (self.cash + self.position *price) - self.initial_cash
-
+    def get_pnl(self, price):
+        pnl = (self.cash - self.margin_posted + self.position * price) - self.initial_cash
         return pnl
     
 

@@ -1,5 +1,5 @@
 from config import *
-from market_state import update_volatility, Compute_panic, Update_price, update_liquidity, Compute_trend, compute_value_signal, compute_demand_impact
+from market_state import update_volatility, Compute_panic, Update_price, update_liquidity, Compute_trend, compute_value_signal, compute_demand_impact, compute_lending_rate
 from agents import contrarian_agent, institutional_agent, momentum_agent, retail_agent, value_investor
 from events.event import Compute_event_state
 import random
@@ -150,6 +150,7 @@ def run_market_simulation():
             "risk_aversion": agent.risk_aversion,
             "max_position_fraction": agent.max_position_fraction,
             "signal_threshold" : agent.signal_threshold,
+            "max_short_fraction" : agent.max_short_fraction,
         })
 
 
@@ -220,7 +221,7 @@ def run_market_simulation():
         value_investor_demand = 0 
         contrarian_demand = 0
 
-
+        total_short_position = 0
         for agent in all_agents:
             # 5.1 Check for exit signals first - each agent type computes independently
             if isinstance(agent, retail_agent.Retail_Agent):
@@ -282,7 +283,7 @@ def run_market_simulation():
                         delayed_state["value_signal"]
                     )
                     
-                    order = agent.decide_order(price, signal, liquidity, t)
+                    order = agent.decide_order(price, signal, liquidity)
 
                 elif isinstance(agent, retail_agent.Retail_Agent):
 
@@ -367,6 +368,8 @@ def run_market_simulation():
 
             # 2. Update Demand
             total_demand += order
+            
+
 
 
             # 3. Log immediately (Use the 'order' variable directly)
@@ -375,13 +378,33 @@ def run_market_simulation():
                 "agent_name": agent.name,
                 "position": agent.position,
                 "signal" : signal,
+                "cash" : agent.cash,
+                "margin posted": agent.margin_posted,
+                "free cash": (agent.cash - agent.margin_posted),
                 "order": order, 
             })
+            #COMPUTE TOTAL SHORT POSITIONS IN THE MARKET
+            if agent.position<0:
+                total_short_position += abs(agent.position)
+        
+        #COMPUTE LENDING RATE AND DEDUCT THE COST
+        lending_rate = compute_lending_rate(total_short_position)
+        for agent in all_agents:
+            if agent.position < 0:
+
+                daily_cost = abs(agent.position) * price * (lending_rate / 252) #GENERALLY THERE ARE 252 TRADING DAYS IN A YEAR
+                agent.cash -=   daily_cost
+                agent.borrow_cost_accrued += daily_cost
+        
+            
+
 
         
 
         data_dict.update({
         "trend":        round(trend,         6),
+        "lending_rate" : round(lending_rate,     2),
+        "total_short_positions": total_short_position,
         "retail_demand" : retail_demand,
         "contrarian_demand" : contrarian_demand,
         "momentum_demand" : momentum_demand,
@@ -441,3 +464,4 @@ if __name__ == "__main__":
     except Exception as e:
         import traceback
         traceback.print_exc()
+
