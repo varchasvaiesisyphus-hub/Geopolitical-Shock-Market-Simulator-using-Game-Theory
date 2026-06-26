@@ -141,5 +141,13 @@ class Agent:
     
 
 
+    def margin_call (self, current_price ):
 
+        equity = self.margin_posted - (current_price - self.entry_price) * abs(self.position)
+        margin_ratio = (equity / (abs(self.position)*current_price)  if self.position != 0 else 0)
+
+        if margin_ratio <= MAINTENANCE_MARGIN_RATE:
+            return -self.position, equity, margin_ratio       # partial-restore-to-threshold --> next layer of compexity
+        else:
+            return 0, equity, margin_ratio
 

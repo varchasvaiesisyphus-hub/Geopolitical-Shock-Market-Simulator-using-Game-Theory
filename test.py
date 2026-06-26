@@ -12,6 +12,6 @@ make threshold values part of config file
 """
 
 
-from config import MAX_SHORT_FRACTION
+# from config import MAX_SHORT_FRACTION
 
-print( MAX_SHORT_FRACTION["contrarian_agent"])
+# print( MAX_SHORT_FRACTION["contrarian_agent"])
