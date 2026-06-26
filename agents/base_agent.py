@@ -15,7 +15,7 @@ from config import MAINTENANCE_MARGIN_RATE, INITIAL_MARGIN_RATE
 # ============================================================
 
 class Agent:
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0):
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0, max_short_fraction = 0):
         self.initial_cash = cash
         self.cash          = cash
         self.position      = 0          # shares held (+ve = long, -ve = short)
@@ -29,6 +29,8 @@ class Agent:
         #short selling parameters 
         self.margin_posted = 0
         self.borrow_cost_accrued = 0
+        self.max_short_fraction = max_short_fraction
+
         
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
@@ -136,7 +138,7 @@ class Agent:
     
 
     def get_pnl(self, price):
-        pnl = (self.cash - self.margin_posted + self.position * price) - self.initial_cash
+        pnl = (self.cash + (self.position * price)) - self.initial_cash
         return pnl
     
 
@@ -146,7 +148,7 @@ class Agent:
         equity = self.margin_posted - (current_price - self.entry_price) * abs(self.position)
         margin_ratio = (equity / (abs(self.position)*current_price)  if self.position != 0 else 0)
 
-        if margin_ratio <= MAINTENANCE_MARGIN_RATE:
+        if margin_ratio >= MAINTENANCE_MARGIN_RATE:
             return -self.position, equity, margin_ratio       # partial-restore-to-threshold --> next layer of compexity
         else:
             return 0, equity, margin_ratio

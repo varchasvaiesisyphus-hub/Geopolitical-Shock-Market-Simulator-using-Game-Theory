@@ -22,8 +22,8 @@ import random
 
 class Retail_Agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price = entry_price)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0, max_short_fraction = 0):
+        super().__init__(cash = cash, k = k, signal_threshold = signal_threshold, risk_aversion = risk_aversion, name= name, max_position_fraction = max_position_fraction, entry_price = entry_price, max_short_fraction=max_short_fraction )
         # Parameterized weight variance: each retail agent has unique weights within behavioral bounds
         self.trend_weight       = np.clip(np.random.normal(0.30, 0.05), 0.20, 0.40)
         self.event_weight       = np.clip(np.random.normal(0.45, 0.08), 0.30, 0.60)
@@ -32,7 +32,8 @@ class Retail_Agent(Agent):
         self.value_weight       = np.clip(np.random.normal(0.25, 0.05), 0.15, 0.35)
         self.signal_delay = random.randint(2, 4)
 
-        self.max_short_fraction = MAX_SHORT_FRACTION["retail_agent"]
+        # self.max_short_fraction = MAX_SHORT_FRACTION["retail_agent"]
+
 
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):

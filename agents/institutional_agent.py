@@ -27,8 +27,8 @@ import random
 
 class Institutional_Agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0, max_short_fraction = 0):
+        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price, max_short_fraction=max_short_fraction)
         # Parameterized weight variance: institutions are disciplined but still have different risk mandates
         self.trend_weight = np.clip(np.random.normal(0.40, 0.05), 0.30, 0.50)
         self.event_weight = np.clip(np.random.normal(0.12, 0.03), 0.28, 0.52)
@@ -37,7 +37,7 @@ class Institutional_Agent(Agent):
         self.value_weight = np.clip(np.random.normal(0.30, 0.06), 0.18, 0.42)
         self.signal_delay = 0
         self.volatility_budget = np.clip(np.random.normal(0.20, 0.04), 0.12, 0.30)
-        self.max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"]
+        # self.max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"]
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (

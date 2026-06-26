@@ -59,7 +59,8 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.40, 0.80),
             name          = f"retail_{i}",
             max_position_fraction =  0.70,
-            signal_threshold = random.uniform(0.025, 0.01)
+            signal_threshold = random.uniform(0.025, 0.01),
+            max_short_fraction = MAX_SHORT_FRACTION["retail_agent"],
         )
 
         retail_agents.append(a)
@@ -78,6 +79,7 @@ def run_market_simulation():
             name          = f"contrarian_{j}",
             max_position_fraction = 0.25,
             signal_threshold = random.uniform(0.03, 0.09),
+            max_short_fraction = MAX_SHORT_FRACTION["contrarian_agent"],
         )
 
         contrarian_agents.append(b)
@@ -94,6 +96,7 @@ def run_market_simulation():
             name          = f"institutional_{l}",
             max_position_fraction = 0.15,
             signal_threshold = random.uniform(0.09, 0.15),
+            max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"],
         )
 
         institutional_agents.append(c)
@@ -110,7 +113,8 @@ def run_market_simulation():
             name          = f"momentum_{m}",
             max_position_fraction = 0.60,
             signal_threshold = random.uniform(0.05, 0.09),
-            lookback = random.choice([3, 5, 8, 10, 15, 20, 25])  # wider spread
+            lookback = random.choice([3, 5, 8, 10, 15, 20, 25]),  # wider spread
+            max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"],
         )
 
         momentum_agents.append(d)
@@ -127,6 +131,7 @@ def run_market_simulation():
             name          = f"value_{v}",        
             max_position_fraction = 0.40,
             signal_threshold = random.uniform(0.08, 0.12),
+            max_short_fraction = MAX_SHORT_FRACTION["value_agent"],
         )
 
         value_investor_agents.append(e)
@@ -247,7 +252,6 @@ def run_market_simulation():
 
                     signal = "margin-called" 
 
-                
 
             else:
 

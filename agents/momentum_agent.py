@@ -26,8 +26,8 @@ import random
 
 class Momentum_Agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = 0,  lookback = 0):
-        super().__init__(cash = cash, k = k, signal_threshold = signal_threshold, risk_aversion= risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price = 0)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = 0,  lookback = 0, max_short_fraction = 0):
+        super().__init__(cash = cash, k = k, signal_threshold = signal_threshold, risk_aversion= risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price = 0, max_short_fraction=max_short_fraction)
         # avg_history: stores rolling average prices across timesteps.
         self.avg_history = []
         self.trend_history = []
@@ -49,7 +49,7 @@ class Momentum_Agent(Agent):
         self.last_entry_t = -999   # timestep of last entry
         # self.entry_cooldown = random.randint(5, 15)  # steps to wait before re-entering
     
-        self.max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"]
+        # self.max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"]
 
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:

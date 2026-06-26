@@ -35,8 +35,8 @@ import random
 
 class value_investor_agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0, max_short_fraction = 0):
+        super().__init__(cash= cash, k = k, signal_threshold = signal_threshold, risk_aversion = risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price = entry_price, max_short_fraction=max_short_fraction)
         # Parameterized weight variance: value investors are value-focused but interpret other signals differently
         self.value_weight = np.clip(np.random.normal(0.90, 0.06), 0.78, 0.98)
         self.panic_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
@@ -45,7 +45,7 @@ class value_investor_agent(Agent):
         self.volatility_weight = np.clip(np.random.normal(0.05, 0.03), 0.01, 0.12)
         self.signal_delay =  random.randint(0, 1) 
 
-        self.max_short_fraction = MAX_SHORT_FRACTION["value_agent"]
+        # self.max_short_fraction = MAX_SHORT_FRACTION["value_agent"]
 
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
