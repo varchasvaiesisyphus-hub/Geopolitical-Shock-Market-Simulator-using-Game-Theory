@@ -243,8 +243,10 @@ def run_market_simulation():
                     margin_calls_log.append(
                         {
                             "agent name" : agent.name,
-                            "cash" : agent.margin_posted,
-                            "free cash": agent.cash- agent.margin_posted,
+                            "entry price" : agent.entry_price,
+                            "exit price": price,
+                            "cash" : agent.cash,
+                            "margin posted" : agent.margin_posted,
                             "margin ratio" : margin_ratio,
                             "equity" : equity,
                         }                
