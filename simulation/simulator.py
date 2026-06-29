@@ -42,6 +42,7 @@ def run_market_simulation():
     market_state_for_agents = []
 
     margin_calls_log = []
+    order_book = []
 
 
 
@@ -414,9 +415,18 @@ def run_market_simulation():
                 "signal" : signal,
                 "cash" : agent.cash,
                 "margin posted": agent.margin_posted,
-                "free cash": (agent.cash - agent.margin_posted),
                 "order": order, 
             })
+            #4 order book
+            if order > 0:
+                order_book.append({
+                    "timestamp": t,
+                    "agent_name": agent.name,
+                    "position": agent.position,
+                    "signal" : signal,
+                    "order": order, 
+                })
+
             #COMPUTE TOTAL SHORT POSITIONS IN THE MARKET
             if agent.position<0:
                 total_short_position += abs(agent.position)
@@ -487,6 +497,7 @@ def run_market_simulation():
     pd.DataFrame(momentum_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "MOMENTUM_EXIT_LOG.csv", index=False)
     pd.DataFrame(value_investor_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "VALUE_INVESTOR_EXIT_LOG.csv", index=False)
     pd.DataFrame(margin_calls_log).to_csv(AGENT_EXIT_LOG_DIR / "MARGIN_CALLS_LOG.csv", index=False)
+    pd.DataFrame(order_book).to_csv(DATA_DIR / "order_book.csv", index=False)
 
 
     print(f"\nSimulation complete. Data saved to {DATA_DIR}")       
