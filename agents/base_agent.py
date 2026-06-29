@@ -30,6 +30,7 @@ class Agent:
         self.margin_posted = 0
         self.borrow_cost_accrued = 0
         self.max_short_fraction = max_short_fraction
+        self.margin_acc = 0
 
         
 
@@ -94,30 +95,68 @@ class Agent:
 
         if order == 0:
             return
-
+    #---------- LONG SIDE ---------#
         # CASE 1: opening new position
-        if old_position == 0 and new_position != 0:
+        if old_position == 0 and new_position > 0:
             self.entry_price = price
-            if new_position < 0:
-                self.margin_posted = abs(new_position) * price * INITIAL_MARGIN_RATE
+            self.cash -= order * price
 
         # CASE 2: increasing same-side position
-        elif (old_position > 0 and order > 0) or \
-            (old_position < 0 and order < 0):
+        elif (old_position > 0 and order > 0): 
+
+            self.entry_price = (
+                (abs(old_position) * self.entry_price) +
+                (abs(order) * price)
+            ) / abs(new_position)
+            self.cash -= order * price
+
+        # CASE 3: fully closing
+        elif new_position == 0 and old_position>0:
+            self.entry_price = 0
+            self.cash -= order * price
+    #---------- SHORT SIDE ---------#
+        #CASE 1.1: opening new position
+        elif old_position == 0 and new_position < 0:
+
+            self.entry_price = price
+            self.margin_posted = abs(new_position) * price * INITIAL_MARGIN_RATE
+            self.margin_acc = (abs(new_position) * price) + self.margin_posted
+            self.cash -= self.margin_posted
+
+        # CASE 2.1: increasing same-side position
+        elif (old_position < 0 and order < 0):
 
             self.entry_price = (
                 (abs(old_position) * self.entry_price) +
                 (abs(order) * price)
             ) / abs(new_position)
 
-            if new_position < 0:
-                self.margin_posted += abs(order) * price * INITIAL_MARGIN_RATE
+            additional_proceeds = abs(order) * price
+            additional_margin = additional_proceeds * INITIAL_MARGIN_RATE
 
-        # CASE 3: fully closing
-        elif new_position == 0:
+            self.margin_posted += additional_margin
+            self.margin_acc += additional_proceeds + additional_margin
+            self.cash -= additional_margin
+
+
+        # CASE 3.1: fully closing
+        elif new_position == 0 and old_position < 0:
+
+            # Cost to repurchase borrowed shares
+            closing_cost = price * abs(old_position)
+
+            # Whatever remains in the margin account belongs to the trader
+            remaining_equity = self.margin_acc - closing_cost
+
+            # Return equity to trader's cash account
+            self.cash += remaining_equity
+
+            # Reset short-selling state variables
             self.entry_price = 0
             self.margin_posted = 0
+            self.margin_acc = 0
 
+    #---------- NEUTRAL/SHORT REDUCING ---------#
         # CASE 4: flipping side
         elif (old_position > 0 > new_position) or \
             (old_position < 0 < new_position):
@@ -128,9 +167,10 @@ class Agent:
         else:
             if old_position < 0:   # margin only applies on the short side
                 self.margin_posted -= self.margin_posted * (abs(order) / abs(old_position))
-
+                self.cash += (self.margin_posted - (abs(order) * price))
+                self.margin_acc -= self.margin_posted
         self.position = new_position
-        self.cash -= order * price
+        
         
     def get_state(self):
         return {"name": self.name, "position": round(self.position, 4),
@@ -144,11 +184,12 @@ class Agent:
 
 
     def margin_call (self, current_price ):
-
-        equity = self.margin_posted - ((current_price - self.entry_price) * abs(self.position))
+        
+        current_liability = current_price * abs(self.position)
+        equity = self.margin_acc - current_liability
         margin_ratio = (equity / (abs(self.position)*current_price)  if self.position != 0 else 0)
 
-        if margin_ratio <= MAINTENANCE_MARGIN_RATE:
+        if margin_ratio >= MAINTENANCE_MARGIN_RATE:
             return -self.position, equity, margin_ratio       # partial-restore-to-threshold --> next layer of compexity
         else:
             return 0, equity, margin_ratio
