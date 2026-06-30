@@ -15,3 +15,18 @@ make threshold values part of config file
 # from config import MAX_SHORT_FRACTION
 
 # print( MAX_SHORT_FRACTION["contrarian_agent"])
+
+a = True
+b = True
+
+# if a:
+#     if b:
+#         print("margin-call")
+
+# else:
+#     print("normal sequence")
+
+if a and b:
+    print("margn-calls")
+else:
+    print("normal seq")

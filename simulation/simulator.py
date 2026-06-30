@@ -237,25 +237,24 @@ def run_market_simulation():
         for agent in all_agents:
 
             #check for margin calls
-            if agent.position< 0:
-                order, equity, margin_ratio = agent.margin_call(price)
-                if order > 0:
+            order, equity, margin_ratio = (agent.margin_call(price) if agent.position < 0 else (0,0,0))
+            if agent.position < 0 and order > 0:
 
-                    margin_calls_log.append(
-                        {
-                            "agent name" : agent.name,
-                            "entry price" : agent.entry_price,
-                            "exit price": price,
-                            "cash" : agent.cash,
-                            "margin posted" : agent.margin_posted,
-                            "margin ratio" : margin_ratio,
-                            "equity" : equity,
-                        }                
-                    )
+                margin_calls_log.append(
+                    {
+                        "agent name" : agent.name,
+                        "entry price" : agent.entry_price,
+                        "exit price": price,
+                        "cash" : agent.cash,
+                        "margin posted" : agent.margin_posted,
+                        "margin ratio" : margin_ratio,
+                        "equity" : equity,
+                    }                
+                )
 
-                    signal = "margin-called" 
+                signal = "margin-called" 
 
-
+            #CHECK EXIT CONDITION AND IF NOT TRIGGERED CHECK SIGNALA ND ORDER 
             else:
 
                 # 5.1 Check for exit signals first - each agent type computes independently
@@ -379,7 +378,7 @@ def run_market_simulation():
                     else:
                         raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
 
-            # Track demand by agent type
+            # Track demand by agent type AND update agent state
             if isinstance(agent, retail_agent.Retail_Agent):
                 retail_demand += order
                 agent.update_state(order, price) 
