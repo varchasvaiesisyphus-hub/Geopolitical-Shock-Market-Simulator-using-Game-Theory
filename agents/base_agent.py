@@ -166,9 +166,10 @@ class Agent:
         # CASE 5: reducing only
         else:
             if old_position < 0:   # margin only applies on the short side
+                self.margin_acc -= self.margin_posted
                 self.margin_posted -= self.margin_posted * (abs(order) / abs(old_position))
                 self.cash += (self.margin_posted - (abs(order) * price))
-                self.margin_acc -= self.margin_posted
+                
         self.position = new_position
         
         
@@ -189,7 +190,7 @@ class Agent:
         equity = self.margin_acc - current_liability
         margin_ratio = (equity / (abs(self.position)*current_price)  if self.position != 0 else 0)
 
-        if margin_ratio >= MAINTENANCE_MARGIN_RATE:
+        if margin_ratio <= MAINTENANCE_MARGIN_RATE:
             return -self.position, equity, margin_ratio       # partial-restore-to-threshold --> next layer of compexity
         else:
             return 0, equity, margin_ratio
