@@ -8,7 +8,7 @@
 # ============================================================
 
 # ---- SIMULATION ----
-T = 200   # number of timesteps (think of each as one trading "day")
+T = 500   # number of timesteps (think of each as one trading "day")
 
 # ---- TREND COMPUTATION ----
 TREND_CLIP        = 0.05   # (currently unused — kept for future use)

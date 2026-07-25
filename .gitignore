@@ -23,6 +23,8 @@ data/*.csv
 data/*.json
 data/*.parquet
 data/agent_exit_log/
+visualization/*.py
+visualization/*.ipynb
 
 # --- IDE and OS ---
 .vscode/

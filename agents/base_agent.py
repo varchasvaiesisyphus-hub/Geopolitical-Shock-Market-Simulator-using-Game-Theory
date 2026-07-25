@@ -166,11 +166,15 @@ class Agent:
         # CASE 5: reducing only
         else:
             if old_position < 0:   # margin only applies on the short side
-                self.margin_acc -= self.margin_posted
-                self.margin_posted -= self.margin_posted * (abs(order) / abs(old_position))
-                self.cash += (self.margin_posted - (abs(order) * price))
-                
-        self.position = new_position
+                fraction_closed = abs(order) / abs(old_position)
+
+                margin_released  = self.margin_posted * fraction_closed   # proportional slice of posted margin
+                account_released  = self.margin_acc * fraction_closed      # proportional slice of proceeds+margin
+                repurchase_cost   = abs(order) * price
+
+                self.cash          += account_released - repurchase_cost
+                self.margin_posted -= margin_released
+                self.margin_acc    -= account_released
         
         
     def get_state(self):
