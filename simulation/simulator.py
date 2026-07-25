@@ -1,18 +1,26 @@
 from config import *
-from market_state import update_volatility, Compute_panic, Update_price, update_liquidity, Compute_trend, compute_value_signal, compute_demand_impact
+from market_state import update_volatility, Compute_panic, Update_price, update_liquidity, Compute_trend, compute_value_signal, compute_demand_impact, compute_lending_rate
 from agents import contrarian_agent, institutional_agent, momentum_agent, retail_agent, value_investor
 from events.event import Compute_event_state
 import random
 import pandas as pd
 from pathlib import Path
+from reset import reset_simulation
+import time
+
+#RESET PREVIOUS SIMULATION DATA
+reset_simulation()
+time.sleep(0.5)  # Ensure the filesystem has time to process the deletion and recreation of the data directory
+print("Data directory reset. Starting new simulation...")
 
 # Set up the data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 AGENT_EXIT_LOG_DIR = DATA_DIR / "agent_exit_log"
 AGENT_EXIT_LOG_DIR.mkdir(exist_ok=True)
-
+PRICE_HISTORY.clear()
 def run_market_simulation():
+
     # ---- INITIALIZE MARKET STATE ----
     price      = INITIAL_PRICE
     ewma_price = float(INITIAL_PRICE)
@@ -33,6 +41,9 @@ def run_market_simulation():
 
     market_state_for_agents = []
 
+    margin_calls_log = []
+    order_book = []
+
 
 
     # ============================================================
@@ -49,7 +60,8 @@ def run_market_simulation():
             risk_aversion = random.uniform(0.40, 0.80),
             name          = f"retail_{i}",
             max_position_fraction =  0.70,
-            signal_threshold = random.uniform(0.025, 0.01)
+            signal_threshold = random.uniform(0.025, 0.01),
+            max_short_fraction = MAX_SHORT_FRACTION["retail_agent"],
         )
 
         retail_agents.append(a)
@@ -68,6 +80,7 @@ def run_market_simulation():
             name          = f"contrarian_{j}",
             max_position_fraction = 0.25,
             signal_threshold = random.uniform(0.03, 0.09),
+            max_short_fraction = MAX_SHORT_FRACTION["contrarian_agent"],
         )
 
         contrarian_agents.append(b)
@@ -84,6 +97,7 @@ def run_market_simulation():
             name          = f"institutional_{l}",
             max_position_fraction = 0.15,
             signal_threshold = random.uniform(0.09, 0.15),
+            max_short_fraction = MAX_SHORT_FRACTION["institutional_agent"],
         )
 
         institutional_agents.append(c)
@@ -96,11 +110,12 @@ def run_market_simulation():
         d = momentum_agent.Momentum_Agent(
             cash          = random.randint(40_000, 60_000),
             k             = random.uniform(0.35, 0.45),
-            risk_aversion = random.uniform(0.00, 0.05),
+            risk_aversion = random.uniform(0.1, 0.9),
             name          = f"momentum_{m}",
             max_position_fraction = 0.60,
             signal_threshold = random.uniform(0.05, 0.09),
-            lookback = random.choice([5,10,20,50])
+            lookback = random.choice([3, 5, 8, 10, 15, 20, 25]),  # wider spread
+            max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"],
         )
 
         momentum_agents.append(d)
@@ -117,6 +132,7 @@ def run_market_simulation():
             name          = f"value_{v}",        
             max_position_fraction = 0.40,
             signal_threshold = random.uniform(0.08, 0.12),
+            max_short_fraction = MAX_SHORT_FRACTION["value_agent"],
         )
 
         value_investor_agents.append(e)
@@ -142,6 +158,7 @@ def run_market_simulation():
             "risk_aversion": agent.risk_aversion,
             "max_position_fraction": agent.max_position_fraction,
             "signal_threshold" : agent.signal_threshold,
+            "max_short_fraction" : agent.max_short_fraction,
         })
 
 
@@ -151,6 +168,7 @@ def run_market_simulation():
     # ============================================================
 
     for t in range(T + 1):
+
 
         # ---- STEP 1: Record current price ----
         PRICE_HISTORY.append(price)
@@ -211,125 +229,156 @@ def run_market_simulation():
         value_investor_demand = 0 
         contrarian_demand = 0
 
+        total_short_position = 0
+
+
+
 
         for agent in all_agents:
-            # 5.1 Check for exit signals first - each agent type computes independently
-            if isinstance(agent, retail_agent.Retail_Agent):
-                exit_signal, exit_type = agent.compute_exit_signal(price, panic)
-            elif isinstance(agent, contrarian_agent.ContrarianAgent):
-                exit_signal, exit_type = agent.compute_exit_signal(price, ewma_price)
-            elif isinstance(agent, institutional_agent.Institutional_Agent):
-                exit_signal, exit_type = agent.compute_exit_signal(price)
-            elif isinstance(agent, momentum_agent.Momentum_Agent):
-                exit_signal, exit_type = agent.compute_exit_signal(price)
-            elif isinstance(agent, value_investor.value_investor_agent):
-                exit_signal, exit_type = agent.compute_exit_signal(price)
+
+            #check for margin calls
+            order, equity, margin_ratio = (agent.margin_call(price) if agent.position < 0 else (0,0,0))
+            if agent.position < 0 and order > 0:
+
+                margin_calls_log.append(
+                    {
+                        "agent name" : agent.name,
+                        "entry price" : agent.entry_price,
+                        "exit price": price,
+                        "cash" : agent.cash,
+                        "margin posted" : agent.margin_posted,
+                        "margin ratio" : margin_ratio,
+                        "equity" : equity,
+                    }                
+                )
+
+                signal = "margin-called" 
+
+            #CHECK EXIT CONDITION AND IF NOT TRIGGERED CHECK SIGNALA ND ORDER 
             else:
-                raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
 
-            if exit_signal != 0:
-                # Exit signal triggered - close position
-                order = exit_signal
-                signal = 0  # Exit overrides signal computation
-
-                # Log the exit
-                agent_category = agent.__class__.__name__.replace("_Agent", "")
-                exit_log_entry = {
-                    "t": t,
-                    "agent_name": agent.name,
-                    "exit_type": exit_type,
-                    "entry_price": agent.entry_price,
-                    "exit_price": price,
-                    "position": agent.position,
-                    "realised_PnL": (price - agent.entry_price) * agent.position,
-                }
-
+                # 5.1 Check for exit signals first - each agent type computes independently
                 if isinstance(agent, retail_agent.Retail_Agent):
-                    retail_exit_log.append(exit_log_entry)
+                    exit_signal, exit_type = agent.compute_exit_signal(price, panic)
                 elif isinstance(agent, contrarian_agent.ContrarianAgent):
-                    contrarian_exit_log.append(exit_log_entry)
+                    exit_signal, exit_type = agent.compute_exit_signal(price, ewma_price)
                 elif isinstance(agent, institutional_agent.Institutional_Agent):
-                    institutional_exit_log.append(exit_log_entry)
+                    exit_signal, exit_type = agent.compute_exit_signal(price, volatility)
                 elif isinstance(agent, momentum_agent.Momentum_Agent):
-                    momentum_exit_log.append(exit_log_entry)
+                    exit_signal, exit_type = agent.compute_exit_signal(price, trend)
                 elif isinstance(agent, value_investor.value_investor_agent):
-                    value_investor_exit_log.append(exit_log_entry)
-            else:
-                # No exit triggered - compute signal and decide order normally
-                if isinstance(agent, momentum_agent.Momentum_Agent):
-
-                    effective_t = max(0, t - agent.signal_delay)
-                    delayed_state = market_state_for_agents[effective_t]
-
-                    signal = agent.compute_signal(
-                        delayed_state['volatility'],
-                        delayed_state["event"], 
-                        delayed_state["panic"], PRICE_HISTORY[:effective_t], 
-                        delayed_state["value_signal"]
-                    )
-                    
-                    order = agent.decide_order(price, signal, liquidity)
-
-                elif isinstance(agent, retail_agent.Retail_Agent):
-
-                    effective_t = max(0, t - agent.signal_delay)
-                    delayed_state = market_state_for_agents[effective_t]
-
-                    signal = agent.compute_signal(
-                        delayed_state['trend'],
-                        delayed_state['volatility'],
-                        delayed_state['event'],
-                        delayed_state['panic'],
-                        delayed_state['value_signal']
-                    )
-                    order = agent.decide_order(price, signal, liquidity)
-
-                elif isinstance(agent, contrarian_agent.ContrarianAgent):
-
-                    effective_t = max(0, t - agent.signal_delay)
-                    delayed_state = market_state_for_agents[effective_t]
-
-                    signal = agent.compute_signal(
-                        delayed_state['trend'],
-                        delayed_state['volatility'],
-                        delayed_state['event'],
-                        delayed_state['panic'],
-                        delayed_state['value_signal']
-                    )
-                    order = agent.decide_order(price, signal, liquidity)
-
-                elif isinstance(agent, institutional_agent.Institutional_Agent):
-
-                    effective_t = max(0, t - agent.signal_delay)
-                    delayed_state = market_state_for_agents[effective_t]
-
-                    signal = agent.compute_signal(
-                        delayed_state['trend'],
-                        delayed_state['volatility'],
-                        delayed_state['event'],
-                        delayed_state['panic'],
-                        delayed_state['value_signal']
-                    )
-                    order = agent.decide_order(price, signal, liquidity)
-
-                elif isinstance(agent, value_investor.value_investor_agent):
-
-                    effective_t = max(0, t - agent.signal_delay)
-                    delayed_state = market_state_for_agents[effective_t]
-                    
-                    signal = agent.compute_signal(
-                        delayed_state['trend'],
-                        delayed_state['volatility'],
-                        delayed_state['event'],
-                        delayed_state['panic'],
-                        delayed_state['value_signal']
-                    )
-                    order = agent.decide_order(price, signal, liquidity)
-
+                    exit_signal, exit_type = agent.compute_exit_signal(price)
                 else:
                     raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
 
-            # Track demand by agent type
+                if exit_signal != 0:
+                    # Exit signal triggered - close position
+                    order = exit_signal
+                    signal = 0  # Exit overrides signal computation
+
+                    # Log the exit
+                    agent_category = agent.__class__.__name__.replace("_Agent", "")
+                    exit_log_entry = {
+                        "t": t,
+                        "agent_name": agent.name,
+                        "exit_type": exit_type,
+                        "entry_price": agent.entry_price,
+                        "exit_price": price,
+                        "position": agent.position,
+                        "realised_PnL": (price - agent.entry_price) * agent.position,
+                    "realised_PnL_pct": (
+                            f"{round(((price - agent.entry_price) / agent.entry_price) * 100, 2)}%"
+                            if agent.entry_price != 0 else "N/A"
+                        )
+                    }
+
+                    if isinstance(agent, retail_agent.Retail_Agent):
+                        retail_exit_log.append(exit_log_entry)
+                    elif isinstance(agent, contrarian_agent.ContrarianAgent):
+                        contrarian_exit_log.append(exit_log_entry)
+                    elif isinstance(agent, institutional_agent.Institutional_Agent):
+                        institutional_exit_log.append(exit_log_entry)
+                    elif isinstance(agent, momentum_agent.Momentum_Agent):
+                        momentum_exit_log.append(exit_log_entry)
+                    elif isinstance(agent, value_investor.value_investor_agent):
+                        value_investor_exit_log.append(exit_log_entry)
+                else:
+                    # No exit triggered - compute signal and decide order normally
+                    if isinstance(agent, momentum_agent.Momentum_Agent):
+
+                        effective_t = max(0, t - agent.signal_delay)
+                        delayed_state = market_state_for_agents[effective_t]
+
+                        signal = agent.compute_signal(
+                            delayed_state['volatility'],
+                            delayed_state["event"], 
+                            delayed_state["panic"], 
+                            PRICE_HISTORY[:effective_t], 
+                            delayed_state["value_signal"]
+                        )
+                        
+                        order = agent.decide_order(price, signal, liquidity)
+
+                    elif isinstance(agent, retail_agent.Retail_Agent):
+
+                        effective_t = max(0, t - agent.signal_delay)
+                        delayed_state = market_state_for_agents[effective_t]
+
+                        signal = agent.compute_signal(
+                            delayed_state['trend'],
+                            delayed_state['volatility'],
+                            delayed_state['event'],
+                            delayed_state['panic'],
+                            delayed_state['value_signal']
+                        )
+                        order = agent.decide_order(price, signal, liquidity)
+
+                    elif isinstance(agent, contrarian_agent.ContrarianAgent):
+
+                        effective_t = max(0, t - agent.signal_delay)
+                        delayed_state = market_state_for_agents[effective_t]
+
+                        signal = agent.compute_signal(
+                            delayed_state['trend'],
+                            delayed_state['volatility'],
+                            delayed_state['event'],
+                            delayed_state['panic'],
+                            delayed_state['value_signal']
+                        )
+                        order = agent.decide_order(price, signal, liquidity)
+
+                    elif isinstance(agent, institutional_agent.Institutional_Agent):
+
+                        effective_t = max(0, t - agent.signal_delay)
+                        delayed_state = market_state_for_agents[effective_t]
+
+                        signal = agent.compute_signal(
+                            delayed_state['trend'],
+                            delayed_state['volatility'],
+                            delayed_state['event'],
+                            delayed_state['panic'],
+                            delayed_state['value_signal']
+                        )
+                        order = agent.decide_order(price, signal, liquidity)
+
+                    elif isinstance(agent, value_investor.value_investor_agent):
+
+                        effective_t = max(0, t - agent.signal_delay)
+                        delayed_state = market_state_for_agents[effective_t]
+                        
+                        signal = agent.compute_signal(
+                            delayed_state['trend'],
+                            delayed_state['volatility'],
+                            delayed_state['event'],
+                            delayed_state['panic'],
+                            delayed_state['value_signal']
+                        )
+                        order = agent.decide_order(price, signal, liquidity)
+
+                    else:
+                        raise Exception("agent not in the ALL_AGENTS class; agent class does not exists")
+
+            # Track demand by agent type AND update agent state
             if isinstance(agent, retail_agent.Retail_Agent):
                 retail_demand += order
                 agent.update_state(order, price) 
@@ -353,6 +402,8 @@ def run_market_simulation():
 
             # 2. Update Demand
             total_demand += order
+            
+
 
 
             # 3. Log immediately (Use the 'order' variable directly)
@@ -361,13 +412,42 @@ def run_market_simulation():
                 "agent_name": agent.name,
                 "position": agent.position,
                 "signal" : signal,
+                "cash" : agent.cash,
+                "margin posted": agent.margin_posted,
                 "order": order, 
             })
+            #4 order book
+            if order > 0:
+                order_book.append({
+                    "timestamp": t,
+                    "agent_name": agent.name,
+                    "position": agent.position,
+                    "signal" : signal,
+                    "order": order, 
+                })
+
+            #COMPUTE TOTAL SHORT POSITIONS IN THE MARKET
+            if agent.position<0:
+                total_short_position += abs(agent.position)
+        
+        #COMPUTE LENDING RATE AND DEDUCT THE COST
+        lending_rate = compute_lending_rate(total_short_position)
+        for agent in all_agents:
+            if agent.position < 0:
+
+                daily_cost = abs(agent.position) * price * (lending_rate / 252) #GENERALLY THERE ARE 252 TRADING DAYS IN A YEAR
+                agent.cash -=   daily_cost
+                agent.borrow_cost_accrued += daily_cost
+        
+            
+
 
         
 
         data_dict.update({
         "trend":        round(trend,         6),
+        "lending_rate" : round(lending_rate,     2),
+        "total_short_positions": total_short_position,
         "retail_demand" : retail_demand,
         "contrarian_demand" : contrarian_demand,
         "momentum_demand" : momentum_demand,
@@ -415,15 +495,18 @@ def run_market_simulation():
     pd.DataFrame(institutional_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "INSTITUTIONAL_EXIT_LOG.csv", index=False)
     pd.DataFrame(momentum_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "MOMENTUM_EXIT_LOG.csv", index=False)
     pd.DataFrame(value_investor_exit_log).to_csv(AGENT_EXIT_LOG_DIR / "VALUE_INVESTOR_EXIT_LOG.csv", index=False)
+    pd.DataFrame(margin_calls_log).to_csv(AGENT_EXIT_LOG_DIR / "MARGIN_CALLS_LOG.csv", index=False)
+    pd.DataFrame(order_book).to_csv(DATA_DIR / "order_book.csv", index=False)
 
-    print(f"\nSimulation complete. Data saved to {DATA_DIR}")   
 
+    print(f"\nSimulation complete. Data saved to {DATA_DIR}")       
 
-    
 
 
 if __name__ == "__main__":
-    run_market_simulation()
+    try:
+        run_market_simulation()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
 
-
-    

@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import BASE_VALUE_INVESTOR_LOSS_RATE, BASE_VALUE_INVESTOR_PROFIT_RATE
+from config import BASE_VALUE_INVESTOR_LOSS_RATE, BASE_VALUE_INVESTOR_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR, MAX_SHORT_FRACTION
 import random 
 # ============================================================
 # VALUE INVESTOR AGENT
@@ -35,8 +35,8 @@ import random
 
 class value_investor_agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction=0, entry_price=0, max_short_fraction = 0):
+        super().__init__(cash= cash, k = k, signal_threshold = signal_threshold, risk_aversion = risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price = entry_price, max_short_fraction=max_short_fraction)
         # Parameterized weight variance: value investors are value-focused but interpret other signals differently
         self.value_weight = np.clip(np.random.normal(0.90, 0.06), 0.78, 0.98)
         self.panic_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
@@ -45,13 +45,15 @@ class value_investor_agent(Agent):
         self.volatility_weight = np.clip(np.random.normal(0.05, 0.03), 0.01, 0.12)
         self.signal_delay =  random.randint(0, 1) 
 
+        # self.max_short_fraction = MAX_SHORT_FRACTION["value_agent"]
+
     def compute_signal(self, trend, volatility, event, panic, value_signal=0.0):
         signal = (
               (self.value_weight * value_signal)  # DOMINANT: buy cheap, sell expensive
-            - ((self.panic_weight * panic) if panic >= 0.25 else 0)         # cautious: real crises can impair fundamentals
+            - (self.panic_weight * (panic - PANIC_FLOOR))         # cautious: real crises can impair fundamentals
             + (self.trend_weight * trend)         # weak: don't fight very strong momentum
             + (self.event_weight * event)         # minimal news sensitivity
-            - ((self.volatility_weight * volatility) if volatility >= 0.5 else 0)    # minimal vol sensitivity
+            - (self.volatility_weight * (volatility -  BASE_VOLATILITY))    # minimal vol sensitivity
         )
         return np.clip(signal, -1.0, 1.0)
 
@@ -59,21 +61,37 @@ class value_investor_agent(Agent):
 
         if self.position == 0:
             return 0, "no existing positions"
-
-        # Value investors have wide stops and large profit targets
-        # They believe in fundamental value and will tolerate volatility
-        # to capture long-term mean reversion
+        
         stoploss_pct = BASE_VALUE_INVESTOR_LOSS_RATE * self.risk_aversion
         takeprofit_pct = BASE_VALUE_INVESTOR_PROFIT_RATE / self.risk_aversion
 
-        stoploss = self.entry_price - self.entry_price * stoploss_pct
-        takeprofit = self.entry_price + self.entry_price * takeprofit_pct
+        if self.position > 0:
+            # Value investors have wide stops and large profit targets
+            # They believe in fundamental value and will tolerate volatility
+            # to capture long-term mean reversion
 
-        if price > stoploss and price < takeprofit:
-             return 0, "hold"
+            stoploss = self.entry_price - self.entry_price * stoploss_pct
+            takeprofit = self.entry_price + self.entry_price * takeprofit_pct
 
-        elif price < stoploss:
-            return -self.position, "stop-loss"
+            if price > stoploss and price < takeprofit:
+                return 0, "hold"
 
-        elif price > takeprofit:
-             return -self.position, "take-profit"
+            elif price < stoploss:
+                return -self.position, "stop-loss"
+
+            elif price > takeprofit:
+                return -self.position, "take-profit"
+            
+        else:
+
+            stoploss = self.entry_price + (self.entry_price * stoploss_pct)
+            takeprofit = self.entry_price - (self.entry_price * takeprofit_pct)
+
+            if price < stoploss and price > takeprofit:
+                return 0, "hold"
+
+            elif price >= stoploss:
+                return -self.position, "stop-loss"
+
+            elif price <= takeprofit:
+                return -self.position, "take-profit"

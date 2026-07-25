@@ -1,22 +1,26 @@
 from agents.base_agent import Agent
 import numpy as np
 import random 
-
+from config import BASE_VOLATILITY, PANIC_FLOOR, MAX_SHORT_FRACTION
 
 
 
 class ContrarianAgent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, entry_price=entry_price)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction= 0, entry_price = 0, max_short_fraction = 0):
+        super().__init__(cash = cash, k = k, signal_threshold = signal_threshold, risk_aversion = risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price=entry_price, max_short_fraction=max_short_fraction)
         self.entry_ewma_price = 0
         # Parameterized weight variance: contrarian agents are value-focused with trend fading
         self.trend_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
         self.event_weight = np.clip(np.random.normal(0.30, 0.07), 0.15, 0.45)
         self.panic_weight = np.clip(np.random.normal(0.40, 0.08), 0.25, 0.55)
         self.value_weight = np.clip(np.random.normal(0.50, 0.10), 0.35, 0.70)
-        self.volatility_weight = np.clip(np.random.normal(0.20, 0.05), 0.10, 0.30)
+        self.volatility_weight = np.clip(np.random.normal(0.12, 0.05), 0.10, 0.30)
         self.signal_delay = random.randint(1, 2)
+        self.reversion_requirement = np.clip(np.random.normal(0.70, 0.1), 0.5, 0.9)
+
+        # self.max_short_fraction = MAX_SHORT_FRACTION["contrarian_agent"]
+
     def update_state(self, order, price, ewma_price):
         super().update_state(order, price)
 
@@ -27,9 +31,9 @@ class ContrarianAgent(Agent):
         signal = (
             - (self.trend_weight * trend)                              # fade the trend
             - (self.event_weight * event)                              # bad news = opportunity
-            + ((self.panic_weight * panic) if panic > 0.05 else 0)                             # buy the panic
+            + (self.panic_weight * (panic - PANIC_FLOOR))                             # buy the panic
             + (self.value_weight * value_signal)                       # PRIMARY value anchor
-            - (((np.sign(trend)) * self.volatility_weight * volatility) if volatility> 0.08 else 0)    # non-linear vol term
+            - ((np.sign(trend)) * self.volatility_weight * (volatility -  BASE_VOLATILITY))   # non-linear vol term
         )
         return np.clip(signal, -1.0, 1.0)
     
@@ -39,17 +43,29 @@ class ContrarianAgent(Agent):
         if self.position == 0:
             return 0, "no existing positions"
 
-
+        reversion_fraction = self.reversion_requirement
         if self.position> 0:
             stoploss = self.entry_price - (self.entry_price* self.risk_aversion)
+            entry_gap = self.entry_ewma_price - self.entry_price    
+            target_price = self.entry_price + (entry_gap * reversion_fraction)
 
-            if price >= ewma: #profit 
+            if price >= target_price and price>= ewma:
                 return -self.position, "take-profit"
             
             elif price <= stoploss:
-                return -self.position, "stop-loss"
+                return -self.position , "stop-loss"
             
             else:
-                return 0 , "hold"
+                return 0, "Hold"
+            
+        elif self.position < 0:
+            stoploss = self.entry_price + (self.entry_price * self.risk_aversion)
+            entry_gap = self.entry_price - self.entry_ewma_price
+            target_price = self.entry_price - (entry_gap * reversion_fraction)
 
-        
+            if price <= target_price and price <ewma:
+                return  -self.position, "take-profit"
+            elif price >= stoploss:
+                return -self.position, "stop-loss"
+            else:
+                return 0, "Hold"

@@ -1,6 +1,6 @@
 from agents.base_agent import Agent
 import numpy as np
-from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE
+from config import PRICE_HISTORY, BASE_MOMENTUM_LOSS_RATE, BASE_MOMENTUM_PROFIT_RATE, BASE_VOLATILITY, PANIC_FLOOR, MAX_SHORT_FRACTION
 import random 
 # ============================================================
 # MOMENTUM AGENT
@@ -26,61 +26,30 @@ import random
 
 class Momentum_Agent(Agent):
 
-    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = None, lookback = 0):
-        super().__init__(cash, k, signal_threshold, risk_aversion, name, max_position_fraction, lookback)
+    def __init__(self, cash, k, signal_threshold, risk_aversion=1.0, name=None, max_position_fraction = 0,  lookback = 0, max_short_fraction = 0):
+        super().__init__(cash = cash, k = k, signal_threshold = signal_threshold, risk_aversion= risk_aversion, name = name, max_position_fraction = max_position_fraction, entry_price = 0, max_short_fraction=max_short_fraction)
         # avg_history: stores rolling average prices across timesteps.
         self.avg_history = []
+        self.trend_history = []
         self.entry_t = 0
+
         self.current_high = 0
+        self.current_low = float('inf')
+        self.prev_high = 0
+
         self.lookback = lookback
         # Parameterized weight variance: momentum agents are trend-focused but still respond to other signals
-        self.event_weight = np.clip(np.random.normal(0.20, 0.04), 0.15, 0.35)
+        self.event_weight = np.clip(np.random.normal(0.15, 0.04), 0.07, 0.35)
         self.panic_weight = np.clip(np.random.normal(0.30, 0.08), 0.15, 0.45)
         self.volatility_weight = np.clip(np.random.normal(0.25, 0.06), 0.12, 0.40)
         self.value_weight = np.clip(np.random.normal(0.10, 0.04), 0.03, 0.18)
-        self.trend_weight = np.clip(np.random.normal(0.45, 0.05), 0.30, 0.60 )
-        self.signal_delay = 0  
+        self.trend_weight = np.clip(np.random.normal(0.45, 0.04), 0.35, 0.55)
+        self.signal_delay = 1  
 
-    def decide_order(self, price, signal, liquidity):
-
-        if abs(signal) <= self.signal_threshold:
-            return 0.0
-
-        order = (self.k * signal * self.cash) / price   #number of shares 
-
-        if order > 0:
-            max_holding = (self.initial_cash/ price) * self.max_position_fraction
-            
-            if self.position < max_holding:
-            
-                remaining_position = max_holding - self.position
-                if self.cash > (remaining_position*price):
-                    order = min([order, remaining_position])
-                else:
-                    order = self.cash / price
-
-            else:
-                order = 0
-
+        self.last_entry_t = -999   # timestep of last entry
+        # self.entry_cooldown = random.randint(5, 15)  # steps to wait before re-entering
     
-        elif order < 0:
-            if self.position > 0:
-                order = -np.min([np.abs(order), self.position])
-
-            else:
-                order = 0
-
-
-        order_size = order * price
-        participation_rate = order_size/liquidity
-        if participation_rate < 0.1:
-            order = np.round(order, 0)
-        else:
-            max_capital_to_spend = participation_rate * liquidity
-            order = max_capital_to_spend/price
-            order = np.round(order, 0)
-            
-        return order
+        # self.max_short_fraction = MAX_SHORT_FRACTION["momentum_agent"]
 
     def compute_signal(self, volatility, event, panic, price_history = None, value_signal=0.0):
         if price_history is None:
@@ -98,8 +67,8 @@ class Momentum_Agent(Agent):
         signal = (
               (trend        * self.trend_weight)   # smoothed rolling trend (primary signal)
             + (event        * self.event_weight)   # news amplifies the trend
-            - ((panic        * self.panic_weight) if panic>= 0.1 else 0)   # panic = possible trend snap
-            - ((volatility   * self.volatility_weight) if volatility>= 0.15 else 0)   # noisy environment
+            - ((panic - PANIC_FLOOR)        * self.panic_weight)   # panic = possible trend snap
+            - ((volatility -  BASE_VOLATILITY)   * self.volatility_weight)   # noisy environment
             + (value_signal * self.value_weight)   # guard: don't short deeply distressed assets
         )
         return np.clip(signal, -1.0, 1.0)
@@ -123,52 +92,116 @@ class Momentum_Agent(Agent):
         if previous_avg == 0:
             return 0.0
         trend = (current_avg - previous_avg) / previous_avg
+        self.trend_history.append(trend)
         return float(np.clip(trend, -1.0, 1.0))
 
-    def compute_exit_signal(self, price):
+    def compute_exit_signal(self, price, trend):
 
         if self.position == 0:
             return 0, "no existing positions"
+        
+        #COMPUTE VOLATILITY
+        window = min(self.lookback, len(PRICE_HISTORY) - 1)
+        if window < 5:
+            volatility = 0.05
+        else:
+            recent = PRICE_HISTORY[-window:]
+            log_returns = np.diff(np.log(recent))
+            volatility = float(np.std(log_returns))
 
-        stoploss = self.current_high - (self.current_high*(0.1- self.risk_aversion))  #higher the risk aversion lower the trailing percentage (5-10%)
+        base_stop_pct = min(0.20,max(0.05,2 * volatility))
+        stop_pct = max(base_stop_pct * self.risk_aversion, 0.02)
 
-        if price > stoploss:
-             return 0, "hold"
+        #LONG SIDE 
+        if self.position > 0:
 
-        elif price <= stoploss:
-            return -self.position, "stop-loss"
+            stoploss = self.current_high * (1 - stop_pct)
+            
+            drawdown_from_high = (self.current_high - price) / self.current_high if self.current_high > 0 else 0
+
+            if price <= stoploss:                          # hard floor — always exit
+                return -self.position, "stop-loss"
+            
+            if drawdown_from_high < 0.05:          # within 5% of high → hold
+                return 0, "hold"
+            
+            elif drawdown_from_high < 0.10:        # 5-10% drawdown → reduce
+                return round(-self.position * 0.25), "Reduce-Position"
+            
+            elif len(self.trend_history) >= 2 and \
+                abs(self.trend_history[-2] - self.trend_history[-1]) > 0.15:
+                return -self.position, "Exit"
+            
+            elif len(self.trend_history) >= 2 and \
+                np.sign(self.trend_history[-2]) != np.sign(self.trend_history[-1]):
+                return -self.position, "Exit"
+            
+            else:
+                return 0, "Hold"
+
+       #SHORT SIDE     
+        else:
+            stoploss = self.current_low * (1 + stop_pct)
+            rebound_from_low = ( price - self.current_low) / self.current_low if self.current_low > 0 else 0
+
+            if price >= stoploss:
+                return -self.position, "stoploss"
+            
+            if rebound_from_low < 0.05:
+                return 0.0, "Hold"
+            
+            elif rebound_from_low < 0.10:
+                return round(-self.position * 0.25), "Reduce-Position"
+            
+            elif len(self.trend_history) >= 2 and \
+                abs(self.trend_history[-2] - self.trend_history[-1]) > 0.15:
+                return -self.position, "Exit"
+
+            elif len(self.trend_history) >= 2 and \
+                np.sign(self.trend_history[-2]) != np.sign(self.trend_history[-1]):
+                return -self.position, "Exit"
+            
+            else:
+                return 0.0, "Hold"
+
+
+
 
 
     def update_state(self, order, price, t):
-        old_position = self.position
-        super().update_state(order, price)
 
-        
+        old_position = self.position
         new_position = old_position + order
 
-        old_entry_t = self.entry_t
-        new_entry_t = old_entry_t + t
+        super().update_state(order, price)
 
-        #case 1: fresh position 
-        if old_position == 0:
+        # case 1: fresh position
+        if old_position == 0 and new_position != 0:
             self.entry_t = t
+            self.last_entry_t = t        # ← update here on entry
 
-        #case 2: complete exit
+        # case 2: complete exit
         elif new_position == 0:
             self.entry_t = 0
+            self.current_high = 0
+            self.prev_high = 0
+            self.current_low = float('inf')  
 
 
-        #case 3: increase/ decrease in position 
         elif new_position != old_position:
             self.entry_t = t
 
-
-        #find highest price since entry t
-        #create a sublist starting from entry_t to present PRICE_HISTORY[entry_t:]  #assuming index = t
         if self.position > 0:
             self.current_high = max(self.current_high, price)
 
+        elif self.position < 0:
+            self.current_low = min(self.current_low, price)
 
+    # def decide_order(self, price, signal, liquidity, t = 0):
 
+    #     if t - self.last_entry_t < self.entry_cooldown and self.position == 0:
+    #         return 0.0
+    #     return super().decide_order(price, signal, liquidity)
+    
 
 
