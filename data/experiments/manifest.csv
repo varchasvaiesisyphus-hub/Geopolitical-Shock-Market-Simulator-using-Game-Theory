@@ -1,0 +1,2 @@
+retail_count,contrarian_count,institutional_count,momentum_count,value_investor_count,config_id,seed,design,varied_parameter,target_percentage,archetype,status
+50,15,5,25,30,cfg_000,42,Baseline,,,,ok

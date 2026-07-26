@@ -1,0 +1,2 @@
+retail_count,contrarian_count,institutional_count,momentum_count,value_investor_count,config_id,seed,design,varied_parameter,target_percentage,archetype,status,fat_tails,volatility_clustering,n_observations,volume_volatility_correlation
+50,15,5,25,30,cfg_000,42,Baseline,,,,ok,15.335987763407555,0.19948633622313588,450,0.7099269723142609
