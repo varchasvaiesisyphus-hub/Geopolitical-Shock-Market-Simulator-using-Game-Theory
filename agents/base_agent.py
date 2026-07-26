@@ -47,28 +47,26 @@ class Agent:
         order = (self.k * signal * self.cash) / price
 
         if order > 0 and self.position >= 0:
-        
+
             budget_ceiling = self.initial_cash * self.max_position_fraction
             budget_committed = abs(self.position) * self.entry_price 
-
-            if budget_committed < budget_ceiling:   #check if the budget ceiling is reached 
+            if budget_committed < budget_ceiling:
                 remaining_budget = budget_ceiling - budget_committed
-                
+
                 desired_order_size = order * price 
-                order_size = min(remaining_budget, desired_order_size, self.cash)
+                order_size = max(0.0, min(remaining_budget, desired_order_size, self.cash))
                 order = np.round(order_size/price, 0)
-            
+
             else:
-                return 0.0 
-            
+                return 0.0
+
         elif order > 0 and self.position < 0:
             order = min([order, abs(self.position)])
 
         elif order < 0 and self.position > 0:
             order = -np.min([np.abs(order), self.position])
 
-        elif order < 0 and self.position <= 0:      
-            
+        elif order < 0 and self.position <= 0:    
 
 
             budget_ceiling = self.initial_cash * self.max_short_fraction
@@ -77,13 +75,12 @@ class Agent:
             if budget_committed < budget_ceiling:
                 remaining_budget = budget_ceiling - budget_committed
 
-                
                 free_cash = self.cash - self.margin_posted
                 desired_order_size = abs(order) * price 
-                order_size = min(remaining_budget, desired_order_size, free_cash)
+                order_size = max(0.0, min(remaining_budget, desired_order_size, free_cash))
                 order = -np.round(order_size/price, 0)  
             else:
-                return 0.0  
+                return 0.0
             
         return np.round(order, 0)            
 
@@ -175,7 +172,8 @@ class Agent:
                 self.cash          += account_released - repurchase_cost
                 self.margin_posted -= margin_released
                 self.margin_acc    -= account_released
-        
+            elif old_position >0:
+                self.cash -= order * price
         
     def get_state(self):
         return {"name": self.name, "position": round(self.position, 4),

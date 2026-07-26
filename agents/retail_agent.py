@@ -69,6 +69,16 @@ class Retail_Agent(Agent):
 
             elif price >= takeprofit:
                 return -self.position, "take-profit"  
-                            
+            
+        else:
+            stoploss = self.entry_price + self.entry_price * stoploss_pct
+            takeprofit = self.entry_price - self.entry_price * takeprofit_pct
+
+            if price > stoploss:
+                return -self.position, "stop-loss"
+            elif price < takeprofit:
+                return -self.position, "take-profit"
+            else:
+                return 0, "hold"                           
 # risk_aversion = random.uniform(0.40, 0.80),
 # panic - [0-1] --> check if the two ranges produce the behaviour intended 

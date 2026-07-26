@@ -7,19 +7,25 @@ import pandas as pd
 from pathlib import Path
 from reset import reset_simulation
 import time
+import numpy as np
 
-#RESET PREVIOUS SIMULATION DATA
-reset_simulation()
-time.sleep(0.5)  # Ensure the filesystem has time to process the deletion and recreation of the data directory
-print("Data directory reset. Starting new simulation...")
 
-# Set up the data directory
-DATA_DIR = Path(__file__).parent.parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
-AGENT_EXIT_LOG_DIR = DATA_DIR / "agent_exit_log"
-AGENT_EXIT_LOG_DIR.mkdir(exist_ok=True)
-PRICE_HISTORY.clear()
-def run_market_simulation():
+def run_market_simulation(agent_counts=None, seed=None, output_dir=None):
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)   # add `import numpy as np` at the top if not already there
+
+    counts = agent_counts or {}
+
+    PRICE_HISTORY.clear()   # <-- CRITICAL: without this, every sweep run after the first
+                             #     inherits price history from the previous run, silently
+                             #     corrupting momentum agents' rolling averages across configs.
+
+    DATA_DIR = Path(output_dir) if output_dir else (Path(__file__).parent.parent / "data")
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    AGENT_EXIT_LOG_DIR = DATA_DIR / "agent_exit_log"
+    AGENT_EXIT_LOG_DIR.mkdir(exist_ok=True)
+
 
     # ---- INITIALIZE MARKET STATE ----
     price      = INITIAL_PRICE
@@ -53,7 +59,7 @@ def run_market_simulation():
     # ---- RETAIL (50 agents) ----
     # Small capital, high aggression, dominated by panic and news.
     retail_agents = []
-    for i in range(RETAIL_COUNT):
+    for i in range(counts.get("retail_count", RETAIL_COUNT)):
         a = retail_agent.Retail_Agent(
             cash          = random.randint(5_000, 15_000),
             k             = random.uniform(0.50, 0.85),
@@ -72,7 +78,7 @@ def run_market_simulation():
     # ---- CONTRARIAN (15 agents) ----
     # Medium capital, high aggression, buy into crashes.
     contrarian_agents = []
-    for j in range(CONTRARIAN_COUNT):
+    for j in range(counts.get("contrarian_count", CONTRARIAN_COUNT)):
         b = contrarian_agent.ContrarianAgent(
             cash          = random.randint(15_000, 25_000),
             k             = random.uniform(0.75, 0.95),
@@ -89,7 +95,7 @@ def run_market_simulation():
     # ---- INSTITUTIONAL (5 agents) ----
     # Large capital, disciplined, volatility-targeting risk mandate.
     institutional_agents = []
-    for l in range(INSTITUTIONAL_COUNT):
+    for l in range(counts.get("institutional_count", INSTITUTIONAL_COUNT)):
         c = institutional_agent.Institutional_Agent(
             cash          = random.randint(350_000, 650_000),
             k             = random.uniform(0.75, 0.95),
@@ -106,7 +112,7 @@ def run_market_simulation():
     # ---- MOMENTUM (25 agents) ----
     # Medium capital, systematic, trend-following via rolling averages.
     momentum_agents = []
-    for m in range(MOMENTUM_COUNT):
+    for m in range(counts.get("momentum_count", MOMENTUM_COUNT)):
         d = momentum_agent.Momentum_Agent(
             cash          = random.randint(40_000, 60_000),
             k             = random.uniform(0.35, 0.45),
@@ -124,7 +130,7 @@ def run_market_simulation():
     # ---- VALUE INVESTORS (30 agents) ----
     # Large capital, patience, driven almost entirely by value dislocation.
     value_investor_agents = []
-    for v in range(VALUE_INVESTOR_COUNT):
+    for v in range(counts.get("value_investor_count", VALUE_INVESTOR_COUNT)):
         e = value_investor.value_investor_agent(
             cash          = random.randint(100_000, 150_000),
             k             = random.uniform(0.45, 0.55),
@@ -222,6 +228,7 @@ def run_market_simulation():
 
         # ---- STEP 5 & 6: Agents act and get Logged ----
         total_demand = 0
+        total_volume = 0 
 
         retail_demand = 0
         momentum_demand = 0
@@ -402,6 +409,7 @@ def run_market_simulation():
 
             # 2. Update Demand
             total_demand += order
+            total_volume += abs(order)
             
 
 
@@ -454,6 +462,7 @@ def run_market_simulation():
         "institutional_demand" : institutional_demand,
         "value_investor_demand" : value_investor_demand,
         "total_demand" : total_demand,
+        "total_volume": total_volume,
         })
 
 

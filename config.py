@@ -58,10 +58,26 @@ DELTA  = 0.1     # liquidity recovery rate (mean-reverts toward L_0)
 # ---- EVENTS ----
 # Define WHEN events occur (timestep key) and WHAT they are (string value).
 # Events fire at the given timestep and decay exponentially afterward.
-EVENT_AT = {
-    #t : "event"
+
+# EVENT_AT = {
+#     #t : "event"
     
+# }
+
+EVENT_AT = {
+    8: "mild_positive", 25: "strong_positive", 28: "mild_positive", 32: "mild_negative",
+    39: "mild_negative", 41: "mild_negative", 45: "mild_negative", 50: "mild_positive",
+    63: "mild_positive", 97: "mild_negative", 129: "mild_negative", 130: "mild_positive",
+    139: "mild_positive", 190: "mild_negative", 203: "mild_negative", 206: "mild_positive",
+    275: "mild_negative", 288: "mild_negative", 300: "mild_positive", 306: "mild_negative",
+    313: "crisis", 320: "mild_negative", 351: "mild_negative", 355: "mild_positive",
+    358: "crisis", 359: "crisis", 367: "mild_negative", 369: "mild_negative",
+    373: "strong_positive", 382: "mild_negative", 383: "mild_positive", 386: "mild_negative",
+    387: "mild_negative", 388: "mild_negative", 395: "mild_positive", 402: "mild_positive",
+    417: "mild_positive", 432: "mild_negative", 466: "mild_negative", 479: "strong_positive",
+    481: "mild_positive", 488: "mild_negative", 498: "mild_negative",
 }
+
 
 # Numeric initial impact of each event type.
 # These are t=0 values — they decay exponentially after the event fires.

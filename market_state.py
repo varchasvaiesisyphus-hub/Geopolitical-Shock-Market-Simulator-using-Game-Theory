@@ -212,6 +212,7 @@ def compute_value_signal(current_price, ewma_reference):
     return float(np.clip(raw, -1.0, 1.0))
 
 
-def compute_lending_rate(total_short_interest = 0, float_size=FLOAT_SIZE, base_rate=BASE_BORROW_RATE, sensitivity=BORROW_RATE_SENSITIVITY):
-    utilization = total_short_interest / float_size
-    return base_rate + sensitivity * utilization
+def compute_lending_rate(total_short_interest=0, float_size=FLOAT_SIZE, base_rate=BASE_BORROW_RATE, sensitivity=BORROW_RATE_SENSITIVITY):
+    utilization = np.clip(total_short_interest / float_size, 0.0, 1.0)
+    rate = base_rate + sensitivity * utilization
+    return min(rate, 1.0)   # hard-to-borrow ceiling: 100% annualized, adjust if you want a different cap

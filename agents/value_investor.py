@@ -83,15 +83,13 @@ class value_investor_agent(Agent):
                 return -self.position, "take-profit"
             
         else:
+            
+            stoploss = self.entry_price + self.entry_price * stoploss_pct
+            takeprofit = self.entry_price - self.entry_price * takeprofit_pct
 
-            stoploss = self.entry_price + (self.entry_price * stoploss_pct)
-            takeprofit = self.entry_price - (self.entry_price * takeprofit_pct)
-
-            if price < stoploss and price > takeprofit:
-                return 0, "hold"
-
-            elif price >= stoploss:
+            if price > stoploss:
                 return -self.position, "stop-loss"
-
-            elif price <= takeprofit:
+            elif price < takeprofit:
                 return -self.position, "take-profit"
+            else:
+                return 0, "hold"
